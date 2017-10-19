@@ -6,22 +6,34 @@ param ()
 Configuration SQLSA
 {
     Import-DscResource -Module 'PSDesiredStateConfiguration', 'xStorage', 'xSQLServer'
-    
-#    xMountImage ISO
-#    {
-#        ImagePath   = 'c:\dsc\sql_server_2016_developer_with_sp1_x64.iso'
-#        DriveLetter = 'F'
-#    }
 
-#    xWaitForVolume WaitForISO
-#    {
-#        DriveLetter      = 'F'
-#        RetryIntervalSec = 5
-#        RetryCount       = 10
-#    }
-    
     Node $AllNodes.NodeName
     {
+        Script GetISO
+        {
+            SetScript =
+            {
+                $webClient = New-Object System.Net.WebClient
+                $uri = New-Object System.Uri "https://raw.githubusercontent.com/luisgmsft/dsc/master/isos/setup.txt.iso"
+                $webClient.DownloadFile($uri, "C:\SQLInstall\sqlsetup.iso")
+            }
+            TestScript = { Test-Path "C:\SQLInstall\sqlsetup.iso" }
+            GetScript = { @{ Result = (Get-Content "C:\SQLInstall\sqlsetup.iso") } }
+        }
+
+        xMountImage ISO
+        {
+            ImagePath   = 'C:\SQLInstall\[replace:sqlsetup.iso]'
+            DriveLetter = 'F'
+        }
+
+        xWaitForVolume WaitForISO
+        {
+            DriveLetter      = 'F'
+            RetryIntervalSec = 5
+            RetryCount       = 10
+        }
+
         LocalConfigurationManager
         {
             DebugMode = "ForceModuleImport"
@@ -73,18 +85,11 @@ Configuration SQLSA
                 Features = $Features
             }
         }
-
-#        xSqlServerSetup "SQLMT"
-#        {
-#            DependsOn = "[WindowsFeature]NET-Framework-Core"
-#            SourcePath = $Node.SourcePath
-#            InstanceName = "NULL"
-#            Features = "SSMS,ADV_SSMS"
-#        }
     } 
 }
 
 $LocalSystemAccount = $InstallerServiceAccount = Get-Credential "superuser"
+
 
 $ConfigurationData = @{
     AllNodes = @(
@@ -108,14 +113,5 @@ $ConfigurationData = @{
     )
 }
 
-#foreach($Node in $ConfigurationData.AllNodes)
-#{
-#    if($Node.NodeName -ne "*")
-#    {
-#        Start-Process -FilePath "robocopy.exe" -ArgumentList ("`"C:\Program Files\WindowsPowerShell\Modules`" `"\\" + $Node.NodeName + "\c$\Program Files\WindowsPowerShell\Modules`" /e /purge /xf") -NoNewWindow -Wait
-#    }
-#}
-
 SQLSA -ConfigurationData $ConfigurationData
-# Set-DscLocalConfigurationManager -Path .\SQLSA -Verbose
 Start-DscConfiguration -Path .\SQLSA -Verbose -Wait -Force
