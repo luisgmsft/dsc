@@ -1,0 +1,66 @@
+{
+    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/spikes/spikes/nodejs-spike/schemas/buildingBlocks.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "buildingBlocks": {
+        "value": [
+          {
+            "type": "VirtualNetwork",
+            "settings": [
+              {
+                "name": "sqlao-vnet",
+                "addressPrefixes": [
+                  "172.18.0.0/24"
+                ],
+                "subnets": [
+                  {
+                    "name": "default",
+                    "addressPrefix": "172.18.0.0/24"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "VirtualMachine",
+            "settings": {
+              "vmCount": 2,
+              "namePrefix": "sqlao",
+              "computerNamePrefix": "sqlao",
+              "virtualNetwork": {
+                "name": "sqlao-vnet"
+              },
+              "size": "Standard_DS3_v2",
+              "adminUsername": "testadminuser",
+              "adminPassword": "test$!Passw0rd111",
+              "osType": "windows",
+              "imageReference": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2016-Datacenter",
+                "version": "latest"
+              },
+              "nics": [
+                {
+                  "isPublic": true,
+                  "subnetName": "default",
+                  "privateIPAllocationMethod": "Static",
+                  "startingIPAddress": "172.18.0.4",
+                  "isPrimary": true
+                }
+              ],
+              "dataDisks": {
+                "count": 1,
+                "diskSizeGB": 127,
+                "caching": "None",
+                "createOption": "empty"
+              },
+              "storageAccounts": {
+                "count": 2
+              }     
+            }
+          }
+        ]
+      }
+    }
+  }
