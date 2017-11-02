@@ -15,6 +15,8 @@ Configuration SimplifiedSQLSA
     #    https://docs.microsoft.com/en-us/powershell/module/failoverclusters/new-cluster?view=win10-ps
     #    New-Cluster -Name “WSFCSQLCluster” -Node sqlao-vm1,sqlao-vm2 -AdministrativeAccessPoint DNS
 
+    #per node config must be passed externally here as there're
+    #common but also specialized tasks
     node localhost
     {
         Script GetISO
@@ -83,6 +85,3 @@ Configuration SimplifiedSQLSA
         }
      }
 }
-
-SimplifiedSQLSA
-Start-DscConfiguration -Path .\SimplifiedSQLSA -Verbose -Wait -Force
