@@ -44,7 +44,7 @@
                 {
                   "isPublic": true,
                   "subnetName": "default",
-                  "privateIPAllocationMethod": "Static",
+                  "privateIPAllocationMethod": "Dynamic",
                   "startingIPAddress": "172.18.0.4",
                   "isPrimary": true
                 }
@@ -66,7 +66,7 @@
                 "typeHandlerVersion": "2.19",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "Modulesurl": "https://[storageaccount].blob.core.windows.net/isos/sql.zip",
+                    "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
                     "ConfigurationFunction":"SimplifiedSQLSA-noexec.ps1\\SimplifiedSQLSA"
                   },
                   "protectedSettings": {}
