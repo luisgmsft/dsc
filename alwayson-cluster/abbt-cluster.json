@@ -30,15 +30,18 @@
               "virtualNetwork": {
                 "name": "sqlao-vnet"
               },
-              "size": "Standard_DS3_v2",
+              "size": "Standard_DS11_v2",
               "adminUsername": "testadminuser",
               "adminPassword": "test$!Passw0rd111",
               "osType": "windows",
               "imageReference": {
-                "publisher": "MicrosoftWindowsServer",
-                "offer": "WindowsServer",
-                "sku": "2016-Datacenter",
+                "publisher": "MicrosoftSQLServer",
+                "offer": "SQL2016SP1-WS2016",
+                "sku": "Standard",
                 "version": "latest"
+              },
+              "availabilitySet": {
+                "name": "sqlao-av"
               },
               "nics": [
                 {
