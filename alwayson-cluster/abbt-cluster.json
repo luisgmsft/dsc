@@ -41,7 +41,7 @@
                 "version": "latest"
               },
               "availabilitySet": {
-                "name": "sqlao-av"
+                "name": "sqlao-as"
               },
               "nics": [
                 {
@@ -72,7 +72,9 @@
                     "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
                     "ConfigurationFunction":"SimplifiedSQLSA-noexec.ps1\\SimplifiedSQLSA"
                   },
-                  "protectedSettings": {}
+                  "protectedSettings": {
+                    "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                  }
                 }
               ]
             } 

@@ -391,3 +391,6 @@ Configuration SimplifiedSQLSA
         }
     }
 }
+
+SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1
+Start-DscConfiguration -Path .\SimplifiedSQLSA -Verbose -Wait -Force
