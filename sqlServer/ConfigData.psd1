@@ -1,12 +1,5 @@
 @{
     AllNodes = @(
-        @{
-            NodeName                    = '*'
-
-            ClusterName                 = 'SQLAOAG'
-            ClusterIPAddress            = '172.18.0.100/24'
-        },
-
         # Node01 - First cluster node.
         @{
             # Replace with the name of the actual target node.

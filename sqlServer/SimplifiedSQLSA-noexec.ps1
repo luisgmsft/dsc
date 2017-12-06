@@ -86,8 +86,8 @@ Configuration SimplifiedSQLSA
             SetScript =
             {
                 try {
-                    # New-Cluster -Name $Node.ClusterName -Node sqlao-vm1, sqlao-vm2 -StaticAddress $Node.ClusterIPAddress -AdministrativeAccessPoint Dns
-                    New-Cluster -Name $Node.ClusterName -Node $env:COMPUTERNAME -StaticAddress $Node.ClusterIPAddress -AdministrativeAccessPoint Dns
+                    # New-Cluster -Name 'SQLAOAG' -Node sqlao-vm1, sqlao-vm2 -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
+                    New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
                 } catch
                 {
                     $ErrorMsg = $_.Exception.Message
@@ -98,7 +98,7 @@ Configuration SimplifiedSQLSA
                 $returnValue = $false
                 try
                 {
-                    $Name = $Node.ClusterName
+                    $Name = 'SQLAOAG'
                     $cluster = Get-Cluster -Name $Name
             
                     Write-Verbose -Message ('Checking if cluster {0} is present.' -f $Name)
@@ -227,7 +227,7 @@ Configuration SimplifiedSQLSA
         Script WaitForCluster
         {
             SetScript = {
-                $Name = $Node.ClusterName
+                $Name = 'SQLAOAG'
                 $RetryIntervalSec = 10
                 $RetryCount = 50
                 
@@ -271,7 +271,7 @@ Configuration SimplifiedSQLSA
                     }
             }
             TestScript = {
-                $Name = $Node.ClusterName
+                $Name = 'SQLAOAG'
 
                 Write-Verbose -Message ('Evaluating if cluster {0} is present.' -f $Name)
                 
@@ -314,8 +314,8 @@ Configuration SimplifiedSQLSA
             SetScript =
             {
                 try {
-                    # New-Cluster -Name $Node.ClusterName -Node sqlao-vm1, sqlao-vm2 -StaticAddress $Node.ClusterIPAddress -AdministrativeAccessPoint Dns
-                    New-Cluster -Name $Node.ClusterName -Node $env:COMPUTERNAME -StaticAddress $Node.ClusterIPAddress -AdministrativeAccessPoint Dns
+                    # New-Cluster -Name 'SQLAOAG' -Node sqlao-vm1, sqlao-vm2 -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
+                    New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
                 } catch
                 {
                     $ErrorMsg = $_.Exception.Message
@@ -326,7 +326,7 @@ Configuration SimplifiedSQLSA
                 $returnValue = $false
                 try
                 {
-                    $Name = $Node.ClusterName
+                    $Name = 'SQLAOAG'
                     $cluster = Get-Cluster -Name $Name
             
                     Write-Verbose -Message ('Checking if cluster {0} is present.' -f $Name)
