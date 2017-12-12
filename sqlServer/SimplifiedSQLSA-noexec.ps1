@@ -100,54 +100,6 @@ Configuration SimplifiedSQLSA
                     }
                 }
                 TestScript = {
-                    # $returnValue = $false
-                    # try
-                    # {
-                    #     $Name = 'SQLAOAG'
-                    #     $cluster = Get-Cluster -Name $Name
-                
-                    #     Write-Verbose -Message ('Checking if cluster {0} is present.' -f $Name)
-                
-                    #     if ($cluster)
-                    #     {
-                    #         $targetNodeName = $env:COMPUTERNAME
-                
-                    #         Write-Verbose -Message ('Checking if the node {0} is a member of the cluster {1}, and so that node status is Up.' -f $targetNodeName, $Name)
-                
-                    #         $allNodes = Get-ClusterNode -Cluster $Name
-                
-                    #         foreach ($node in $allNodes)
-                    #         {
-                    #             if ($node.Name -eq $targetNodeName)
-                    #             {
-                    #                 if ($node.State -eq 'Up')
-                    #                 {
-                    #                     $returnValue = $true
-                    #                 }
-                    #                 else
-                    #                 {
-                    #                     Write-Verbose -Message ('Node {0} is in the cluster {1} but the status is not Up. Node will be treated as NOT being a member of the cluster {1}.' -f $targetNodeName, $Name)
-                    #                 }
-                
-                    #                 break
-                    #             }
-                    #         }
-                
-                    #         if ($returnValue)
-                    #         {
-                    #             Write-Verbose -Message ('Cluster {0} is present.' -f $targetNodeName, $Name)
-                    #         }
-                    #         else
-                    #         {
-                    #             Write-Verbose -Message ('Cluster {0} is NOT present.' -f $targetNodeName, $Name)
-                    #         }
-                    #     }
-                    # }
-                    # catch
-                    # {
-                    #     Write-Verbose -Message ('Cluster {0} is NOT present with error: {1}' -f $Name, $_.Message)
-                    # }
-    
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
@@ -165,151 +117,31 @@ Configuration SimplifiedSQLSA
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
                 DependsOn = '[Script]CreateWindowsCluster'
-            }            
+            }
+        }
+    }
+
+    Node localhost
+    {
+        if ($env:COMPUTERNAME -eq 'sqlao-vm1') {
+            
         }
         
         if ($env:COMPUTERNAME -eq 'sqlao-vm2') {
-            # Script WaitForCluster
-            # {
-            #     SetScript = {
-            #         $Name = 'SQLAOAG'
-            #         $RetryIntervalSec = 10
-            #         $RetryCount = 50
-                    
-            #         $clusterFound = $false
-                    
-            #             Write-Verbose -Message ('Checking if cluster {0} is present.' -f $Name)
-    
-            #             for ($count = 0; $count -lt $RetryCount; $count++)
-            #             {
-            #                 try
-            #                 {
-            #                     $cluster = Get-Cluster -Name $Name
-    
-            #                     if ($null -ne $cluster)
-            #                     {
-            #                         Write-Verbose -Message ('Cluster {0} is present.' -f $Name)
-            #                         $clusterFound = $true
-            #                         break
-            #                     }
-            #                 }
-            #                 catch
-            #                 {
-            #                     Write-Verbose -Message ('Cluster {0} is NOT present. Will retry again after {1} seconds.' -f $Name, $RetryIntervalSec)
-            #                 }
-    
-            #                 Write-Verbose -Message ('Cluster {0} is NOT present. Will retry again after {1} seconds.' -f $Name, $RetryIntervalSec)
-            #                 Start-Sleep -Seconds $RetryIntervalSec
-            #             }
-    
-            #             if (-not $clusterFound)
-            #             {
-            #                 $errorMessage = 'Failover cluster {0} was not found after {1} attempts with {2} seconds interval.' -f $Name, $count, $RetryIntervalSec
-            #                 New-InvalidOperationException -Message $errorMessage
-            #             }
-            #     }
-            #     TestScript = {
-            #         # $Name = 'SQLAOAG'
-    
-            #         # Write-Verbose -Message ('Evaluating if cluster {0} is present.' -f $Name)
-                    
-            #         #     $testTargetResourceReturnValue = $false
-                    
-            #         #     try
-            #         #     {
-            #         #         $cluster = Get-Cluster -Name $Name
-            #         #         if ($null -eq $cluster)
-            #         #         {
-            #         #             Write-Verbose -Message ('Cluster {0} is NOT present.' -f $Name)
-            #         #         }
-            #         #         else
-            #         #         {
-            #         #             Write-Verbose -Message ('Cluster {0} is present.' -f $Name)
-            #         #             $testTargetResourceReturnValue = $true
-            #         #         }
-            #         #     }
-            #         #     catch
-            #         #     {
-            #         #         Write-Verbose -Message ('Cluster {0} is NOT present with error: {1}.' -f $Name, $_.Message)
-            #         #     }
-                    
-            #         #     return $testTargetResourceReturnValue
-
-            #         return $false
-            #     }
-            #     GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-            #     DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringCmdInterfaceFeature'
-            # }
-    
-            Script JoinSecondNodeToCluster
+            Script JoinSecondary
             {
                 SetScript =
                 {
-                    try {
-                        # New-Cluster -Name 'SQLAOAG' -Node sqlao-vm1, sqlao-vm2 -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
-                        New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
-                    } catch
-                    {
-                        $ErrorMsg = $_.Exception.Message
-                        Write-Verbose -Verbose $ErrorMsg
-                    }
+                    Add-ClusterNode -Name 'sqlao-vm2' -Cluster 'SQLAOAG'
                 }
                 TestScript = {
-                    # $returnValue = $false
-                    # try
-                    # {
-                    #     $Name = 'SQLAOAG'
-                    #     $cluster = Get-Cluster -Name $Name
-                
-                    #     Write-Verbose -Message ('Checking if cluster {0} is present.' -f $Name)
-                
-                    #     if ($cluster)
-                    #     {
-                    #         $targetNodeName = $env:COMPUTERNAME
-                
-                    #         Write-Verbose -Message ('Checking if the node {0} is a member of the cluster {1}, and so that node status is Up.' -f $targetNodeName, $Name)
-                
-                    #         $allNodes = Get-ClusterNode -Cluster $Name
-                
-                    #         foreach ($node in $allNodes)
-                    #         {
-                    #             if ($node.Name -eq $targetNodeName)
-                    #             {
-                    #                 if ($node.State -eq 'Up')
-                    #                 {
-                    #                     $returnValue = $true
-                    #                 }
-                    #                 else
-                    #                 {
-                    #                     Write-Verbose -Message ('Node {0} is in the cluster {1} but the status is not Up. Node will be treated as NOT being a member of the cluster {1}.' -f $targetNodeName, $Name)
-                    #                 }
-                
-                    #                 break
-                    #             }
-                    #         }
-                
-                    #         if ($returnValue)
-                    #         {
-                    #             Write-Verbose -Message ('Cluster {0} is present.' -f $targetNodeName, $Name)
-                    #         }
-                    #         else
-                    #         {
-                    #             Write-Verbose -Message ('Cluster {0} is NOT present.' -f $targetNodeName, $Name)
-                    #         }
-                    #     }
-                    # }
-                    # catch
-                    # {
-                    #     Write-Verbose -Message ('Cluster {0} is NOT present with error: {1}' -f $Name, $_.Message)
-                    # }
-    
-                    # return $returnValue
+                    Start-Sleep -s 60
                     return $false
                 }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                #DependsOn                     = '[Script]WaitForCluster'
+                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+                #DependsOn = '[Script]CreateWindowsCluster'
             }
-    
+
             Script EnableAvailabilityGroupOnSecondary
             {
                 SetScript =
@@ -320,7 +152,7 @@ Configuration SimplifiedSQLSA
                     return $false
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]JoinSecondNodeToCluster'
+                DependsOn = '[Script]JoinSecondary'
             }
         }
     }
