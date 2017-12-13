@@ -86,13 +86,17 @@ Configuration SimplifiedSQLSA
     Node localhost
     {
         if ($env:COMPUTERNAME -eq 'sqlao-vm1') {
+            $pw = convertto-securestring -AsPlainText -Force -String "test$!Passw0rd111"
+            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "testadminuser",$pw
+
             Script CreateWindowsCluster
             {
+                PsDscRunAsCredential = $cred
                 SetScript =
                 {
                     try {
                         # New-Cluster -Name 'SQLAOAG' -Node sqlao-vm1, sqlao-vm2 -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
-                        New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
+                        New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME, 'sqlao-vm2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
                     } catch
                     {
                         $ErrorMsg = $_.Exception.Message
@@ -100,6 +104,7 @@ Configuration SimplifiedSQLSA
                     }
                 }
                 TestScript = {
+                    Start-Sleep -s 90
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
@@ -132,11 +137,11 @@ Configuration SimplifiedSQLSA
             {
                 SetScript =
                 {
-                    Add-ClusterNode -Name 'sqlao-vm2' -Cluster 'SQLAOAG'
+                    #Add-ClusterNode -Name 'sqlao-vm2' -Cluster 'SQLAOAG'
                 }
                 TestScript = {
-                    Start-Sleep -s 60
-                    return $false
+                    Start-Sleep -s 120
+                    return $true
                 }
                 GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
                 #DependsOn = '[Script]CreateWindowsCluster'
