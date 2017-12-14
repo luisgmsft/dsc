@@ -5,6 +5,9 @@
 
 Configuration SimplifiedSQLSA
 {
+    Param(
+        [string]$safeModePassword = "test$!Passw0rd111"
+    )
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xSQLServer, xNetworking
 
     #Step by step to reverse
@@ -85,23 +88,16 @@ Configuration SimplifiedSQLSA
 
     Node localhost
     {
-        if ($env:COMPUTERNAME -eq 'sqlao-vm1') {
-            $pw = convertto-securestring -AsPlainText -Force -String "test$!Passw0rd111"
-            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "testadminuser",$pw
+        if ($env:COMPUTERNAME -eq 'sqlao1') {
+            $pw = convertto-securestring $safeModePassword -AsPlainText -Force
+            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
 
             Script CreateWindowsCluster
             {
                 PsDscRunAsCredential = $cred
                 SetScript =
                 {
-                    try {
-                        # New-Cluster -Name 'SQLAOAG' -Node sqlao-vm1, sqlao-vm2 -StaticAddress '172.18.0.100/24' -AdministrativeAccessPoint Dns
-                        New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME, 'sqlao-vm2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
-                    } catch
-                    {
-                        $ErrorMsg = $_.Exception.Message
-                        Write-Verbose -Verbose $ErrorMsg
-                    }
+                    New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME, 'sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
                 }
                 TestScript = {
                     Start-Sleep -s 90
@@ -128,16 +124,16 @@ Configuration SimplifiedSQLSA
 
     Node localhost
     {
-        if ($env:COMPUTERNAME -eq 'sqlao-vm1') {
+        if ($env:COMPUTERNAME -eq 'sqlao1') {
             
         }
         
-        if ($env:COMPUTERNAME -eq 'sqlao-vm2') {
+        if ($env:COMPUTERNAME -eq 'sqlao2') {
             Script JoinSecondary
             {
                 SetScript =
                 {
-                    #Add-ClusterNode -Name 'sqlao-vm2' -Cluster 'SQLAOAG'
+                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
                 }
                 TestScript = {
                     Start-Sleep -s 120
