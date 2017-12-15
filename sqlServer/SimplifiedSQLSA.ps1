@@ -120,6 +120,30 @@ Configuration SimplifiedSQLSA
                 DependsOn = '[Script]CreateWindowsCluster'
             }
         }
+
+        Script GetPrimaryCert 
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM1_cert.cer" 
+                $webClient.DownloadFile($uri, "C:\SQLAO_VM1_cert.cer") 
+            } 
+            TestScript = { Test-Path "C:\SQLAO_VM1_cert.cer" } 
+            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM1_cert.cer") } } 
+        }
+        
+        Script GetSecondaryCert 
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM2_cert.cer" 
+                $webClient.DownloadFile($uri, "C:\SQLAO_VM2_cert.cer") 
+            } 
+            TestScript = { Test-Path "C:\SQLAO_VM2_cert.cer" } 
+            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM2_cert.cer") } } 
+        }
     }
 
     Node localhost
