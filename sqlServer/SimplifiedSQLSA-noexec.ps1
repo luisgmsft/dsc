@@ -144,6 +144,42 @@ Configuration SimplifiedSQLSA
             TestScript = { Test-Path "C:\SQLAO_VM2_cert.cer" } 
             GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM2_cert.cer") } } 
         }
+
+        Script GetPrimaryCertKey
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM1_key.pvk" 
+                $webClient.DownloadFile($uri, "C:\SQLAO_VM1_key.pvk") 
+            } 
+            TestScript = { Test-Path "C:\SQLAO_VM1_key.pvk" } 
+            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM1_key.pvk") } } 
+        }
+        
+        Script GetSecondaryCertKey 
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM2_key.pvk" 
+                $webClient.DownloadFile($uri, "C:\SQLAO_VM2_key.pvk") 
+            } 
+            TestScript = { Test-Path "C:\SQLAO_VM2_key.pvk" } 
+            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM2_key.pvk") } } 
+        }
+
+        Script GetDbBackup 
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/Northwind.bak" 
+                $webClient.DownloadFile($uri, "C:\Northwind.bak") 
+            } 
+            TestScript = { Test-Path "C:\Northwind.bak" } 
+            GetScript = { @{ Result = (Get-Content "C:\Northwind.bak") } } 
+        }
     }
 
     Node localhost
