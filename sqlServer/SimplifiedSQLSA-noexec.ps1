@@ -8,7 +8,7 @@ Configuration SimplifiedSQLSA
     Param(
         [string]$safeModePassword = "test$!Passw0rd111"
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xSQLServer, xNetworking
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xSQLServer, xNetworking, SqlServerDsc
 
     #Step by step to reverse
     #https://www.mssqltips.com/sqlservertip/4991/implement-a-sql-server-2016-availability-group-without-active-directory-part-1/
