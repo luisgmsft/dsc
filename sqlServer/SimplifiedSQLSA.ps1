@@ -121,54 +121,6 @@ Configuration SimplifiedSQLSA
             }
         }
 
-        Script GetPrimaryCert 
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM1_cert.cer" 
-                $webClient.DownloadFile($uri, "C:\SQLAO_VM1_cert.cer") 
-            } 
-            TestScript = { Test-Path "C:\SQLAO_VM1_cert.cer" } 
-            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM1_cert.cer") } } 
-        }
-        
-        Script GetSecondaryCert 
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM2_cert.cer" 
-                $webClient.DownloadFile($uri, "C:\SQLAO_VM2_cert.cer") 
-            } 
-            TestScript = { Test-Path "C:\SQLAO_VM2_cert.cer" } 
-            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM2_cert.cer") } } 
-        }
-
-        Script GetPrimaryCertKey
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM1_key.pvk" 
-                $webClient.DownloadFile($uri, "C:\SQLAO_VM1_key.pvk") 
-            } 
-            TestScript = { Test-Path "C:\SQLAO_VM1_key.pvk" } 
-            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM1_key.pvk") } } 
-        }
-        
-        Script GetSecondaryCertKey 
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/SQLAO_VM2_key.pvk" 
-                $webClient.DownloadFile($uri, "C:\SQLAO_VM2_key.pvk") 
-            } 
-            TestScript = { Test-Path "C:\SQLAO_VM2_key.pvk" } 
-            GetScript = { @{ Result = (Get-Content "C:\SQLAO_VM2_key.pvk") } } 
-        }
-
         Script GetDbBackup 
         { 
             SetScript = 
@@ -179,6 +131,46 @@ Configuration SimplifiedSQLSA
             } 
             TestScript = { Test-Path "C:\Northwind.bak" } 
             GetScript = { @{ Result = (Get-Content "C:\Northwind.bak") } } 
+        }
+
+        Script GetCerts
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
+                $webClient.DownloadFile($uri, "C:\certs.zip") 
+            } 
+            TestScript = { Test-Path "C:\certs.zip" } 
+            GetScript = { @{ Result = (Get-Content "C:\certs.zip") } } 
+        }
+
+        archive CertZipFile
+        {
+            Path = 'C:\certs.zip'
+            Destination = 'c:\'
+            Ensure = 'Present'
+            DependsOn = '[Script]GetCerts'
+        }
+
+        Script GetTScripts 
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/tscripts.zip" 
+                $webClient.DownloadFile($uri, "C:\tscripts.zip") 
+            } 
+            TestScript = { Test-Path "C:\tscripts.zip" } 
+            GetScript = { @{ Result = (Get-Content "C:\tscripts.zip") } } 
+        }
+
+        archive ZipFile
+        {
+            Path = 'C:\tscripts.zip'
+            Destination = 'c:\'
+            Ensure = 'Present'
+            DependsOn = '[Script]GetTScripts'
         }
     }
 
@@ -217,6 +209,62 @@ Configuration SimplifiedSQLSA
             }
         }
     }
+
+    # Node localhost
+    # {
+    #     if ($env:COMPUTERNAME -eq 'sqlao1')
+    #     {
+    #         SqlScript 'Primary-Step-1' {
+    #             ServerInstance = 'sqlao1'
+    #             SetFilePath = 'c:\vm1-step1.sql'
+    #             TestFilePath = 'c:\vm1-step1.sql'
+    #             GetFilePath = 'c:\vm1-step1.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #         }
+    #     }
+
+    #     if ($env:COMPUTERNAME -eq 'sqlao2')
+    #     {
+    #         SqlScript 'Secondary-Step-1' {
+    #             ServerInstance = 'sqlao2'
+    #             SetFilePath = 'c:\vm2-step1.sql'
+    #             TestFilePath = 'c:\vm2-step1.sql'
+    #             GetFilePath = 'c:\vm2-step1.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #         }
+
+    #     }
+    # }
+
+    # Node localhost
+    # {
+    #     if ($env:COMPUTERNAME -eq 'sqlao1')
+    #     {
+    #         SqlScript 'Primary-Step-2' {
+    #             ServerInstance = 'sqlao1'
+    #             SetFilePath = 'c:\vm1-step2.sql'
+    #             TestFilePath = 'c:\ vm1-step2.sql'
+    #             GetFilePath = 'c:\vm1-step2.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #         }
+    #     }
+
+    #     if ($env:COMPUTERNAME -eq 'sqlao2')
+    #     {
+    #         SqlScript 'Secondary-Step-2' {
+    #             ServerInstance = 'sqlao2'
+    #             SetFilePath = 'c:\vm2-step2.sql'
+    #             TestFilePath = 'c:\vm2-step2.sql'
+    #             GetFilePath = 'c:\vm2-step2.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #         }
+
+    #     }
+    # }
 }
 
 SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1
