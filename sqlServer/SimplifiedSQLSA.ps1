@@ -210,61 +210,91 @@ Configuration SimplifiedSQLSA
         }
     }
 
-    # Node localhost
-    # {
-    #     if ($env:COMPUTERNAME -eq 'sqlao1')
-    #     {
-    #         SqlScript 'Primary-Step-1' {
-    #             ServerInstance = 'sqlao1'
-    #             SetFilePath = 'c:\vm1-step1.sql'
-    #             TestFilePath = 'c:\vm1-step1.sql'
-    #             GetFilePath = 'c:\vm1-step1.sql'
+    Node localhost
+    {
+        Script WaitForAG
+            {
+                SetScript =
+                {
+                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+                }
+                TestScript = {
+                    Start-Sleep -s 180
+                    return $true
+                }
+                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+            }
+        
+        if ($env:COMPUTERNAME -eq 'sqlao1')
+        {
+            SqlScript 'Primary-Step-1' {
+                ServerInstance = 'sqlao1'
+                SetFilePath = 'c:\vm1-step1.sql'
+                TestFilePath = 'c:\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\dummy-for-all-tests.sql'
 
-    #             PsDscRunAsCredential = $cred
-    #         }
-    #     }
+                PsDscRunAsCredential = $cred
+                DependsOn = '[Script]WaitForAG'
+            }
+        }
 
-    #     if ($env:COMPUTERNAME -eq 'sqlao2')
-    #     {
-    #         SqlScript 'Secondary-Step-1' {
-    #             ServerInstance = 'sqlao2'
-    #             SetFilePath = 'c:\vm2-step1.sql'
-    #             TestFilePath = 'c:\vm2-step1.sql'
-    #             GetFilePath = 'c:\vm2-step1.sql'
+        if ($env:COMPUTERNAME -eq 'sqlao2')
+        {
+            SqlScript 'Secondary-Step-1' {
+                ServerInstance = 'sqlao2'
+                SetFilePath = 'c:\vm2-step1.sql'
+                TestFilePath = 'c:\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\dummy-for-all-tests.sql'
 
-    #             PsDscRunAsCredential = $cred
-    #         }
+                PsDscRunAsCredential = $cred
+                DependsOn = '[Script]WaitForAG'
+            }
 
-    #     }
-    # }
+        }
+    }
 
-    # Node localhost
-    # {
-    #     if ($env:COMPUTERNAME -eq 'sqlao1')
-    #     {
-    #         SqlScript 'Primary-Step-2' {
-    #             ServerInstance = 'sqlao1'
-    #             SetFilePath = 'c:\vm1-step2.sql'
-    #             TestFilePath = 'c:\ vm1-step2.sql'
-    #             GetFilePath = 'c:\vm1-step2.sql'
+    Node localhost
+    {
+        Script WaitForStep1
+            {
+                SetScript =
+                {
+                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+                }
+                TestScript = {
+                    Start-Sleep -s 200
+                    return $true
+                }
+                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+            }
+        
+        if ($env:COMPUTERNAME -eq 'sqlao1')
+        {
+            SqlScript 'Primary-Step-2' {
+                ServerInstance = 'sqlao1'
+                SetFilePath = 'c:\vm1-step2.sql'
+                TestFilePath = 'c:\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\dummy-for-all-tests.sql'
 
-    #             PsDscRunAsCredential = $cred
-    #         }
-    #     }
+                PsDscRunAsCredential = $cred
+                DependsOn = '[Script]WaitForStep1'
+            }
+        }
 
-    #     if ($env:COMPUTERNAME -eq 'sqlao2')
-    #     {
-    #         SqlScript 'Secondary-Step-2' {
-    #             ServerInstance = 'sqlao2'
-    #             SetFilePath = 'c:\vm2-step2.sql'
-    #             TestFilePath = 'c:\vm2-step2.sql'
-    #             GetFilePath = 'c:\vm2-step2.sql'
+        if ($env:COMPUTERNAME -eq 'sqlao2')
+        {
+            SqlScript 'Secondary-Step-2' {
+                ServerInstance = 'sqlao2'
+                SetFilePath = 'c:\vm2-step2.sql'
+                TestFilePath = 'c:\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\dummy-for-all-tests.sql'
 
-    #             PsDscRunAsCredential = $cred
-    #         }
+                PsDscRunAsCredential = $cred
+                DependsOn = '[Script]WaitForStep1'
+            }
 
-    #     }
-    # }
+        }
+    }
 }
 
 SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1

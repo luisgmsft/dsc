@@ -1,3 +1,6 @@
+USE master
+GO
+
 RESTORE DATABASE Northwind
 	FROM DISK = N'c:\Northwind.bak'
 GO
