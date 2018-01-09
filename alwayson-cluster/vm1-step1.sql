@@ -5,6 +5,9 @@ RESTORE DATABASE Northwind
 	FROM DISK = N'c:\Northwind.bak'
 GO
 
+ALTER DATABASE Northwind SET RECOVERY FULL;  
+GO
+
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'y0ur$ecUr3PAssw0rd';  
 GO
 
@@ -41,5 +44,5 @@ AS TCP
 GO
 
 GRANT CONNECT ON ENDPOINT::Endpoint_AvailabilityGroup 
-TO [login_AvailabilityGroup];    
+TO login_AvailabilityGroup;
 GO

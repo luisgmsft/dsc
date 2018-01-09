@@ -1,11 +1,6 @@
 USE master
 GO
 
-RESTORE DATABASE Northwind
-	FROM DISK = N'c:\Northwind.bak'
-    WITH NORECOVERY
-GO
-
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'y0ur$ecUr3PAssw0rd';  
 GO
 
