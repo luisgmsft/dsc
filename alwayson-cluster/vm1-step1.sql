@@ -2,7 +2,7 @@ USE master
 GO
 
 RESTORE DATABASE Northwind
-	FROM DISK = N'c:\Northwind.bak'
+	FROM DISK = N'c:\TempDSCAssets\Northwind.bak'
 GO
 
 ALTER DATABASE Northwind SET RECOVERY FULL;  
@@ -11,8 +11,8 @@ GO
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'y0ur$ecUr3PAssw0rd';  
 GO
 
-CREATE CERTIFICATE SQLAO_VM1_cert FROM FILE='c:\SQLAO_VM1_cert.cer'
-	WITH PRIVATE KEY(FILE='c:\SQLAO_VM1_key.pvk', DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd');
+CREATE CERTIFICATE SQLAO_VM1_cert FROM FILE='c:\TempDSCAssets\SQLAO_VM1_cert.cer'
+	WITH PRIVATE KEY(FILE='c:\TempDSCAssets\SQLAO_VM1_key.pvk', DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd');
 GO
 
 CREATE LOGIN login_AvailabilityGroup 
@@ -25,8 +25,8 @@ GO
 
 CREATE CERTIFICATE SQLAO_VM2_cert
 AUTHORIZATION login_AvailabilityGroup
-FROM FILE='c:\SQLAO_VM2_cert.cer'
-	WITH PRIVATE KEY(FILE='c:\SQLAO_VM2_key.pvk', DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd');
+FROM FILE='c:\TempDSCAssets\SQLAO_VM2_cert.cer'
+	WITH PRIVATE KEY(FILE='c:\TempDSCAssets\SQLAO_VM2_key.pvk', DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd');
 GO
 
 CREATE ENDPOINT Endpoint_AvailabilityGroup 

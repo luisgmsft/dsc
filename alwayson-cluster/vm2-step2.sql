@@ -5,7 +5,7 @@ ALTER AVAILABILITY GROUP SQLAOAG JOIN;
 GO
 
 RESTORE DATABASE Northwind
-	FROM DISK = N'c:\Northwind.bak'
+	FROM DISK = N'c:\TempDSCAssets\Northwind.bak'
     WITH NORECOVERY
 GO
 

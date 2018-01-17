@@ -70,7 +70,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                    "ConfigurationFunction":"SimplifiedSQLSA-noexec.ps1\\SimplifiedSQLSA"
+                    "ConfigurationFunction":"SimplifiedSQLSA.ps1\\SimplifiedSQLSA"
                   },
                   "protectedSettings": {
                     "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"

@@ -8,7 +8,7 @@ Configuration SimplifiedSQLSA
     Param(
         [string]$safeModePassword = "test$!Passw0rd111"
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xSQLServer, xNetworking, SqlServerDsc
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc
 
     #Step by step to reverse
     #https://www.mssqltips.com/sqlservertip/4991/implement-a-sql-server-2016-availability-group-without-active-directory-part-1/
@@ -121,16 +121,25 @@ Configuration SimplifiedSQLSA
             }
         }
 
+        File DirectoryTemp
+        {
+            Ensure = "Present"  # You can also set Ensure to "Absent"
+            Type = "Directory" # Default is "File".
+            Recurse = $false
+            DestinationPath = "C:\TempDSCAssets"
+        }
+
         Script GetDbBackup 
         { 
             SetScript = 
             { 
                 $webClient = New-Object System.Net.WebClient 
                 $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/Northwind.bak" 
-                $webClient.DownloadFile($uri, "C:\Northwind.bak") 
+                $webClient.DownloadFile($uri, "C:\TempDSCAssets\Northwind.bak") 
             } 
-            TestScript = { Test-Path "C:\Northwind.bak" } 
-            GetScript = { @{ Result = (Get-Content "C:\Northwind.bak") } } 
+            TestScript = { Test-Path "C:\TempDSCAssets\Northwind.bak" } 
+            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\Northwind.bak") } } 
+            DependsOn = '[File]DirectoryTemp'
         }
 
         Script GetCerts
@@ -139,16 +148,17 @@ Configuration SimplifiedSQLSA
             { 
                 $webClient = New-Object System.Net.WebClient 
                 $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
-                $webClient.DownloadFile($uri, "C:\certs.zip") 
+                $webClient.DownloadFile($uri, "C:\TempDSCAssets\certs.zip") 
             } 
-            TestScript = { Test-Path "C:\certs.zip" } 
-            GetScript = { @{ Result = (Get-Content "C:\certs.zip") } } 
+            TestScript = { Test-Path "C:\TempDSCAssets\certs.zip" } 
+            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\certs.zip") } } 
+            DependsOn = '[File]DirectoryTemp'
         }
 
         archive CertZipFile
         {
-            Path = 'C:\certs.zip'
-            Destination = 'c:\'
+            Path = 'C:\TempDSCAssets\certs.zip'
+            Destination = 'c:\TempDSCAssets\'
             Ensure = 'Present'
             DependsOn = '[Script]GetCerts'
         }
@@ -159,16 +169,17 @@ Configuration SimplifiedSQLSA
             { 
                 $webClient = New-Object System.Net.WebClient 
                 $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/tscripts.zip" 
-                $webClient.DownloadFile($uri, "C:\tscripts.zip") 
+                $webClient.DownloadFile($uri, "C:\TempDSCAssets\tscripts.zip") 
             } 
-            TestScript = { Test-Path "C:\tscripts.zip" } 
-            GetScript = { @{ Result = (Get-Content "C:\tscripts.zip") } } 
+            TestScript = { Test-Path "C:\TempDSCAssets\tscripts.zip" } 
+            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\tscripts.zip") } } 
+            DependsOn = '[File]DirectoryTemp'
         }
 
         archive ZipFile
         {
-            Path = 'C:\tscripts.zip'
-            Destination = 'c:\'
+            Path = 'C:\TempDSCAssets\tscripts.zip'
+            Destination = 'c:\TempDSCAssets\'
             Ensure = 'Present'
             DependsOn = '[Script]GetTScripts'
         }
@@ -229,9 +240,9 @@ Configuration SimplifiedSQLSA
         {
             SqlScript 'Primary-Step-1' {
                 ServerInstance = 'sqlao1'
-                SetFilePath = 'c:\vm1-step1.sql'
-                TestFilePath = 'c:\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\dummy-for-all-tests.sql'
+                SetFilePath = 'c:\TempDSCAssets\vm1-step1.sql'
+                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
                 PsDscRunAsCredential = $cred
                 DependsOn = '[Script]WaitForAG'
@@ -242,9 +253,9 @@ Configuration SimplifiedSQLSA
         {
             SqlScript 'Secondary-Step-1' {
                 ServerInstance = 'sqlao2'
-                SetFilePath = 'c:\vm2-step1.sql'
-                TestFilePath = 'c:\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\dummy-for-all-tests.sql'
+                SetFilePath = 'c:\TempDSCAssets\vm2-step1.sql'
+                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
                 PsDscRunAsCredential = $cred
                 DependsOn = '[Script]WaitForAG'
@@ -272,9 +283,9 @@ Configuration SimplifiedSQLSA
         {
             SqlScript 'Primary-Step-2' {
                 ServerInstance = 'sqlao1'
-                SetFilePath = 'c:\vm1-step2.sql'
-                TestFilePath = 'c:\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\dummy-for-all-tests.sql'
+                SetFilePath = 'c:\TempDSCAssets\vm1-step2.sql'
+                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
                 PsDscRunAsCredential = $cred
                 DependsOn = '[Script]WaitForStep1'
@@ -285,9 +296,9 @@ Configuration SimplifiedSQLSA
         {
             SqlScript 'Secondary-Step-2' {
                 ServerInstance = 'sqlao2'
-                SetFilePath = 'c:\vm2-step2.sql'
-                TestFilePath = 'c:\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\dummy-for-all-tests.sql'
+                SetFilePath = 'c:\TempDSCAssets\vm2-step2.sql'
+                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
                 PsDscRunAsCredential = $cred
                 DependsOn = '[Script]WaitForStep1'
@@ -297,5 +308,5 @@ Configuration SimplifiedSQLSA
     }
 }
 
-SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1
-Start-DscConfiguration -Path .\SimplifiedSQLSA -Verbose -Wait -Force
+#SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1
+#Start-DscConfiguration -Path .\SimplifiedSQLSA -Verbose -Wait -Force
