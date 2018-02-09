@@ -72,7 +72,9 @@
                     "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
                     "ConfigurationFunction":"Cluster.ps1\\Cluster"
                   },
-                  "protectedSettings": {}
+                  "protectedSettings": {
+                    "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                  }
                 }
               ]
             } 
