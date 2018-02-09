@@ -93,7 +93,7 @@ Configuration Cluster
     Node localhost
     {
         $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-        $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "stestadminuser",$pw
+        $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist ".\testadminuser",$pw
         # https://github.com/PowerShell/SqlServerDsc#sqlserviceaccount
         SqlServiceAccount SetServiceAccount_User
         {
@@ -104,10 +104,11 @@ Configuration Cluster
             RestartService = $true
         }
 
-        $machineName = $env:COMPUTERNAME + '.lugizi.ao.contoso.com'
+        $machineName = $env:COMPUTERNAME
         xComputer NewNameAndWorkgroup
         {
             Name = $machineName
+            DomainName = 'lugizi.ao.contoso.com'
         }
 
         LocalConfigurationManager 
