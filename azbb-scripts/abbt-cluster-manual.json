@@ -1,0 +1,52 @@
+{
+    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/spikes/spikes/nodejs-spike/schemas/buildingBlocks.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "buildingBlocks": {
+        "value": [
+          {
+            "type": "VirtualMachine",
+            "settings": {
+              "vmCount": 2,
+              "namePrefix": "sqlao",
+              "computerNamePrefix": "sqlao",
+              "virtualNetwork": {
+                "name": "sqlao-manual-vnet"
+              },
+              "size": "Standard_DS11_v2",
+              "adminUsername": "testadminuser",
+              "adminPassword": "test$!Passw0rd111",
+              "osType": "windows",
+              "imageReference": {
+                "publisher": "MicrosoftSQLServer",
+                "offer": "SQL2016SP1-WS2016",
+                "sku": "Standard",
+                "version": "latest"
+              },
+              "availabilitySet": {
+                "name": "sqlao-as"
+              },
+              "nics": [
+                {
+                  "isPublic": false,
+                  "subnetName": "cluster",
+                  "privateIPAllocationMethod": "Static",
+                  "startingIPAddress": "172.19.0.10",
+                  "isPrimary": true
+                }
+              ],
+              "dataDisks": {
+                "count": 1,
+                "diskSizeGB": 127,
+                "caching": "None",
+                "createOption": "empty"
+              },
+              "storageAccounts": {
+                "count": 2
+              }
+            } 
+          }
+        ]
+      }
+    }
+  }

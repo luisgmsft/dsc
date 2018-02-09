@@ -1,14 +1,9 @@
-<#
-.EXAMPLE
-    In this example, we will create a failover cluster with two servers. No need for Active Directory.
-#>
-
-Configuration SimplifiedSQLSA
+Configuration Cluster
 {
     Param(
         [string]$safeModePassword = "test$!Passw0rd111"
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
 
     #Step by step to reverse
     #https://www.mssqltips.com/sqlservertip/4991/implement-a-sql-server-2016-availability-group-without-active-directory-part-1/
@@ -80,9 +75,55 @@ Configuration SimplifiedSQLSA
             DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringPowerShellFeature'
         }
 
+        WindowsFeature AddRemoteServerAdministrationToolsClusteringServerToolsFeature
+        {
+            Ensure    = 'Present'
+            Name      = 'RSAT-Clustering-Mgmt'
+            DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringCmdInterfaceFeature'
+        }
+
         LocalConfigurationManager 
         {
             RebootNodeIfNeeded = $true
+        }
+    }
+
+
+    # 2 - How to change machine name to comply with custom DNS?
+    Node localhost
+    {
+        $pw = convertto-securestring $safeModePassword -AsPlainText -Force
+        $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "stestadminuser",$pw
+        # https://github.com/PowerShell/SqlServerDsc#sqlserviceaccount
+        SqlServiceAccount SetServiceAccount_User
+        {
+            ServerName     = $env:COMPUTERNAME
+            InstanceName   = 'MSSQLSERVER'
+            ServiceType    = 'DatabaseEngine'
+            ServiceAccount = $cred
+            RestartService = $true
+        }
+
+        $machineName = $env:COMPUTERNAME + '.lugizi.ao.contoso.com'
+        xComputer NewNameAndWorkgroup
+        {
+            Name = $machineName
+        }
+
+        LocalConfigurationManager 
+        {
+            RebootNodeIfNeeded = $true
+        }
+
+        Script EnableLocalAccountForWindowsCluster
+        {
+            SetScript = {
+                New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1
+            }
+            TestScript = {
+                return $false
+            }
+            GetScript = { @{ Result = '' }}
         }
     }
 
@@ -97,10 +138,10 @@ Configuration SimplifiedSQLSA
                 PsDscRunAsCredential = $cred
                 SetScript =
                 {
-                    New-Cluster -Name 'SQLAOAG' -Node $env:COMPUTERNAME, 'sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
+                    New-Cluster -Name 'sqlaocl' -Node sqlao1,sqlao2 -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
                 }
                 TestScript = {
-                    Start-Sleep -s 90
+                    Start-Sleep -s 120
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
@@ -127,19 +168,6 @@ Configuration SimplifiedSQLSA
             Type = "Directory" # Default is "File".
             Recurse = $false
             DestinationPath = "C:\TempDSCAssets"
-        }
-
-        Script GetDbBackup 
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/Northwind.bak" 
-                $webClient.DownloadFile($uri, "C:\TempDSCAssets\Northwind.bak") 
-            } 
-            TestScript = { Test-Path "C:\TempDSCAssets\Northwind.bak" } 
-            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\Northwind.bak") } } 
-            DependsOn = '[File]DirectoryTemp'
         }
 
         Script GetCerts
@@ -199,7 +227,7 @@ Configuration SimplifiedSQLSA
                     #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
                 }
                 TestScript = {
-                    Start-Sleep -s 120
+                    Start-Sleep -s 180
                     return $true
                 }
                 GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
@@ -213,7 +241,7 @@ Configuration SimplifiedSQLSA
                     Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
                 }
                 TestScript = {
-                    return $false
+                    return $falseT
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
                 DependsOn = '[Script]JoinSecondary'
@@ -221,92 +249,89 @@ Configuration SimplifiedSQLSA
         }
     }
 
-    Node localhost
-    {
-        Script WaitForAG
-            {
-                SetScript =
-                {
-                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-                }
-                TestScript = {
-                    Start-Sleep -s 180
-                    return $true
-                }
-                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-            }
+    # Node localhost
+    # {
+    #     Script WaitForAG
+    #         {
+    #             SetScript =
+    #             {
+    #                 #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+    #             }
+    #             TestScript = {
+    #                 Start-Sleep -s 240
+    #                 return $true
+    #             }
+    #             GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+    #         }
         
-        if ($env:COMPUTERNAME -eq 'sqlao1')
-        {
-            SqlScript 'Primary-Step-1' {
-                ServerInstance = 'sqlao1'
-                SetFilePath = 'c:\TempDSCAssets\vm1-step1.sql'
-                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #     if ($env:COMPUTERNAME -eq 'sqlao1')
+    #     {
+    #         SqlScript 'Primary-Step-1' {
+    #             ServerInstance = 'sqlao1'
+    #             SetFilePath = 'c:\TempDSCAssets\vm1-step1.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]WaitForAG'
-            }
-        }
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[Script]WaitForAG'
+    #         }
+    #     }
 
-        if ($env:COMPUTERNAME -eq 'sqlao2')
-        {
-            SqlScript 'Secondary-Step-1' {
-                ServerInstance = 'sqlao2'
-                SetFilePath = 'c:\TempDSCAssets\vm2-step1.sql'
-                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #     if ($env:COMPUTERNAME -eq 'sqlao2')
+    #     {
+    #         SqlScript 'Secondary-Step-1' {
+    #             ServerInstance = 'sqlao2'
+    #             SetFilePath = 'c:\TempDSCAssets\vm2-step1.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]WaitForAG'
-            }
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[Script]WaitForAG'
+    #         }
 
-        }
-    }
+    #     }
+    # }
 
-    Node localhost
-    {
-        Script WaitForStep1
-            {
-                SetScript =
-                {
-                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-                }
-                TestScript = {
-                    Start-Sleep -s 200
-                    return $true
-                }
-                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-            }
+    # Node localhost
+    # {
+    #     Script WaitForStep1
+    #         {
+    #             SetScript =
+    #             {
+    #                 #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+    #             }
+    #             TestScript = {
+    #                 Start-Sleep -s 280
+    #                 return $true
+    #             }
+    #             GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+    #         }
         
-        if ($env:COMPUTERNAME -eq 'sqlao1')
-        {
-            SqlScript 'Primary-Step-2' {
-                ServerInstance = 'sqlao1'
-                SetFilePath = 'c:\TempDSCAssets\vm1-step2.sql'
-                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #     if ($env:COMPUTERNAME -eq 'sqlao1')
+    #     {
+    #         SqlScript 'Primary-Step-2' {
+    #             ServerInstance = 'sqlao1'
+    #             SetFilePath = 'c:\TempDSCAssets\vm1-step2.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]WaitForStep1'
-            }
-        }
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[Script]WaitForStep1'
+    #         }
+    #     }
 
-        if ($env:COMPUTERNAME -eq 'sqlao2')
-        {
-            SqlScript 'Secondary-Step-2' {
-                ServerInstance = 'sqlao2'
-                SetFilePath = 'c:\TempDSCAssets\vm2-step2.sql'
-                TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
-                GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #     if ($env:COMPUTERNAME -eq 'sqlao2')
+    #     {
+    #         SqlScript 'Secondary-Step-2' {
+    #             ServerInstance = 'sqlao2'
+    #             SetFilePath = 'c:\TempDSCAssets\vm2-step2.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]WaitForStep1'
-            }
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[Script]WaitForStep1'
+    #         }
 
-        }
-    }
+    #     }
+    # }
 }
-
-#SimplifiedSQLSA -ConfigurationData .\ConfigData.psd1
-#Start-DscConfiguration -Path .\SimplifiedSQLSA -Verbose -Wait -Force
