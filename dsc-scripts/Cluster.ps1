@@ -102,14 +102,29 @@ Configuration Cluster
             ServiceType    = 'DatabaseEngine'
             ServiceAccount = $cred
             RestartService = $true
+            PsDscRunAsCredential = $cred
         }
 
-        $machineName = $env:COMPUTERNAME
-        xComputer NewNameAndWorkgroup
+        # $machineName = $env:COMPUTERNAME
+        # xComputer NewNameAndWorkgroup
+        # {
+        #     Name = $machineName
+        #     DomainName = 'lugizi.ao.contoso.com'
+        # }
+        #
+        Script SetDNSSuffix
         {
-            Name = $machineName
-            DomainName = 'lugizi.ao.contoso.com'
+            SetScript = {
+                $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'index=0'
+                $adapter.SetDNSDomain('lugizi.ao.contoso.com')
+            }
+            TestScript = {
+                return $false
+            }
+            GetScript = { @{ Result = '' }}
+            PsDscRunAsCredential = $cred
         }
+        #
 
         LocalConfigurationManager 
         {
@@ -119,12 +134,13 @@ Configuration Cluster
         Script EnableLocalAccountForWindowsCluster
         {
             SetScript = {
-                New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1
+                Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1
             }
             TestScript = {
                 return $false
             }
             GetScript = { @{ Result = '' }}
+            PsDscRunAsCredential = $cred
         }
     }
 
@@ -146,7 +162,7 @@ Configuration Cluster
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
-                #DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringCmdInterfaceFeature'
+                DependsOn = '[Script]EnableLocalAccountForWindowsCluster'
             }
     
             Script EnableAvailabilityGroupOnPrimary
@@ -160,6 +176,7 @@ Configuration Cluster
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
                 DependsOn = '[Script]CreateWindowsCluster'
+                PsDscRunAsCredential = $cred
             }
         }
 
@@ -242,7 +259,7 @@ Configuration Cluster
                     Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
                 }
                 TestScript = {
-                    return $falseT
+                    return $false
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
                 DependsOn = '[Script]JoinSecondary'

@@ -17,9 +17,68 @@
                     "name": "default",
                     "addressPrefix": "172.18.0.0/24"
                   }
+                ],
+                "dnsServers": [
+                  "172.18.0.4",
+                  "168.63.129.16"
                 ]
               }
             ]
+          },
+          {
+            "type": "VirtualMachine",
+            "settings": {
+              "vmCount": 1,
+              "namePrefix": "sqldns",
+              "computerNamePrefix": "sqldns",
+              "virtualNetwork": {
+                "name": "sqlao-vnet"
+              },
+              "size": "Standard_DS11_v2",
+              "adminUsername": "testadminuser",
+              "adminPassword": "test$!Passw0rd111",
+              "osType": "windows",
+              "imageReference": {
+                "publisher": "MicrosoftSQLServer",
+                "offer": "SQL2016SP1-WS2016",
+                "sku": "Standard",
+                "version": "latest"
+              },
+              "nics": [
+                {
+                  "isPublic": true,
+                  "subnetName": "default",
+                  "privateIPAllocationMethod": "Static",
+                  "startingIPAddress": "172.18.0.4",
+                  "isPrimary": true
+                }
+              ],
+              "dataDisks": {
+                "count": 1,
+                "diskSizeGB": 127,
+                "caching": "None",
+                "createOption": "empty"
+              },
+              "storageAccounts": {
+                "count": 2
+              },
+              "extensions": [              
+              {
+                "name": "sql",
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.20",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                    "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure"
+                  },
+                  "protectedSettings": {
+                    "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                  }
+                }
+              ]
+            } 
           },
           {
             "type": "VirtualMachine",
