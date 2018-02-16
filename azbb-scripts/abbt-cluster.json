@@ -19,11 +19,41 @@
                   }
                 ],
                 "dnsServers": [
-                  "172.18.0.4",
+                  "172.18.0.5",
                   "168.63.129.16"
                 ]
               }
             ]
+          },
+          {
+            "type": "VirtualMachine",
+            "settings": {
+              "vmCount": 1,
+              "namePrefix": "sqljb",
+              "computerNamePrefix": "sqljb",
+              "virtualNetwork": {
+                "name": "sqlao-vnet"
+              },
+              "size": "Standard_DS11_v2",
+              "adminUsername": "testadminuser",
+              "adminPassword": "test$!Passw0rd111",
+              "osType": "windows",
+              "imageReference": {
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2016-Datacenter",
+                "version": "latest"
+              },
+              "nics": [
+                {
+                  "isPublic": true,
+                  "subnetName": "default",
+                  "privateIPAllocationMethod": "Static",
+                  "startingIPAddress": "172.18.0.4",
+                  "isPrimary": true
+                }
+              ]
+            } 
           },
           {
             "type": "VirtualMachine",
@@ -39,29 +69,20 @@
               "adminPassword": "test$!Passw0rd111",
               "osType": "windows",
               "imageReference": {
-                "publisher": "MicrosoftSQLServer",
-                "offer": "SQL2016SP1-WS2016",
-                "sku": "Standard",
+                "publisher": "MicrosoftWindowsServer",
+                "offer": "WindowsServer",
+                "sku": "2016-Datacenter",
                 "version": "latest"
               },
               "nics": [
                 {
-                  "isPublic": true,
+                  "isPublic": false,
                   "subnetName": "default",
                   "privateIPAllocationMethod": "Static",
-                  "startingIPAddress": "172.18.0.4",
+                  "startingIPAddress": "172.18.0.5",
                   "isPrimary": true
                 }
               ],
-              "dataDisks": {
-                "count": 1,
-                "diskSizeGB": 127,
-                "caching": "None",
-                "createOption": "empty"
-              },
-              "storageAccounts": {
-                "count": 2
-              },
               "extensions": [              
               {
                 "name": "sql",
@@ -104,7 +125,7 @@
               },
               "nics": [
                 {
-                  "isPublic": true,
+                  "isPublic": false,
                   "subnetName": "default",
                   "privateIPAllocationMethod": "Static",
                   "startingIPAddress": "172.18.0.10",

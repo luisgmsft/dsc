@@ -115,7 +115,7 @@ Configuration Cluster
         Script SetDNSSuffix
         {
             SetScript = {
-                $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'index=0'
+                $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'IPEnabled=True'
                 $adapter.SetDNSDomain('lugizi.ao.contoso.com')
             }
             TestScript = {
