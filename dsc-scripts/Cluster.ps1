@@ -88,8 +88,6 @@ Configuration Cluster
         }
     }
 
-
-    # 2 - How to change machine name to comply with custom DNS?
     Node localhost
     {
         $pw = convertto-securestring $safeModePassword -AsPlainText -Force
@@ -105,26 +103,18 @@ Configuration Cluster
             PsDscRunAsCredential = $cred
         }
 
-        # $machineName = $env:COMPUTERNAME
-        # xComputer NewNameAndWorkgroup
+        # Script SetDNSSuffix
         # {
-        #     Name = $machineName
-        #     DomainName = 'lugizi.ao.contoso.com'
+        #     SetScript = {
+        #         $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'IPEnabled=True'
+        #         $adapter.SetDNSDomain('lugizi.ao.contoso.com')
+        #     }
+        #     TestScript = {
+        #         return $false
+        #     }
+        #     GetScript = { @{ Result = '' }}
+        #     PsDscRunAsCredential = $cred
         # }
-        #
-        Script SetDNSSuffix
-        {
-            SetScript = {
-                $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'IPEnabled=True'
-                $adapter.SetDNSDomain('lugizi.ao.contoso.com')
-            }
-            TestScript = {
-                return $false
-            }
-            GetScript = { @{ Result = '' }}
-            PsDscRunAsCredential = $cred
-        }
-        #
 
         LocalConfigurationManager 
         {
@@ -146,39 +136,39 @@ Configuration Cluster
 
     Node localhost
     {
-        if ($env:COMPUTERNAME -eq 'sqlao1') {
-            $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
+        # if ($env:COMPUTERNAME -eq 'sqlao1') {
+        #     $pw = convertto-securestring $safeModePassword -AsPlainText -Force
+        #     $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
 
-            Script CreateWindowsCluster
-            {
-                PsDscRunAsCredential = $cred
-                SetScript =
-                {
-                    New-Cluster -Name 'sqlaocl' -Node sqlao1,sqlao2 -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
-                }
-                TestScript = {
-                    Start-Sleep -s 120
-                    return $false
-                }
-                GetScript = { @{ Result = '' } }
-                DependsOn = '[Script]EnableLocalAccountForWindowsCluster'
-            }
+        #     Script CreateWindowsCluster
+        #     {
+        #         PsDscRunAsCredential = $cred
+        #         SetScript =
+        #         {
+        #             New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
+        #         }
+        #         TestScript = {
+        #             Start-Sleep -s 120
+        #             return $false
+        #         }
+        #         GetScript = { @{ Result = '' } }
+        #         DependsOn = '[Script]EnableLocalAccountForWindowsCluster'
+        #     }
     
-            Script EnableAvailabilityGroupOnPrimary
-            {
-                SetScript =
-                {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]CreateWindowsCluster'
-                PsDscRunAsCredential = $cred
-            }
-        }
+        #     Script EnableAvailabilityGroupOnPrimary
+        #     {
+        #         SetScript =
+        #         {
+        #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+        #         }
+        #         TestScript = {
+        #             return $false
+        #         }
+        #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+        #         DependsOn = '[Script]CreateWindowsCluster'
+        #         PsDscRunAsCredential = $cred
+        #     }
+        # }
 
         File DirectoryTemp
         {
@@ -233,38 +223,38 @@ Configuration Cluster
 
     Node localhost
     {
-        if ($env:COMPUTERNAME -eq 'sqlao1') {
+        # if ($env:COMPUTERNAME -eq 'sqlao1') {
             
-        }
+        # }
         
-        if ($env:COMPUTERNAME -eq 'sqlao2') {
-            Script JoinSecondary
-            {
-                SetScript =
-                {
-                    #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-                }
-                TestScript = {
-                    Start-Sleep -s 180
-                    return $true
-                }
-                GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-                #DependsOn = '[Script]CreateWindowsCluster'
-            }
+        # if ($env:COMPUTERNAME -eq 'sqlao2') {
+        #     Script JoinSecondary
+        #     {
+        #         SetScript =
+        #         {
+        #             #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+        #         }
+        #         TestScript = {
+        #             Start-Sleep -s 180
+        #             return $true
+        #         }
+        #         GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+        #         #DependsOn = '[Script]CreateWindowsCluster'
+        #     }
 
-            Script EnableAvailabilityGroupOnSecondary
-            {
-                SetScript =
-                {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]JoinSecondary'
-            }
-        }
+        #     Script EnableAvailabilityGroupOnSecondary
+        #     {
+        #         SetScript =
+        #         {
+        #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+        #         }
+        #         TestScript = {
+        #             return $false
+        #         }
+        #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+        #         # DependsOn = '[Script]JoinSecondary'
+        #     }
+        # }
     }
 
     # Node localhost

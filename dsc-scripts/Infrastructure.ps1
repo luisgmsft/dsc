@@ -32,18 +32,18 @@ Configuration Infrastructure
             DependsOn = '[WindowsFeature]DnsToolsFeature'
         }
 
-        Script SetDNSSuffix
-        {
-            SetScript = {
-                $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'index=0'
-                $adapter.SetDNSDomain('lugizi.ao.contoso.com')
-            }
-            TestScript = {
-                return $false
-            }
-            GetScript = { @{ Result = '' }}
-            PsDscRunAsCredential = $cred
-            DependsOn = '[xDnsServerPrimaryZone]PrimaryZone'
-        }
+        # Script SetDNSSuffix
+        # {
+        #     SetScript = {
+        #         $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'index=0'
+        #         $adapter.SetDNSDomain('lugizi.ao.contoso.com')
+        #     }
+        #     TestScript = {
+        #         return $false
+        #     }
+        #     GetScript = { @{ Result = '' }}
+        #     PsDscRunAsCredential = $cred
+        #     DependsOn = '[xDnsServerPrimaryZone]PrimaryZone'
+        # }
     }
 }
