@@ -13,6 +13,10 @@ Configuration Cluster
     #    https://docs.microsoft.com/en-us/powershell/module/failoverclusters/new-cluster?view=win10-ps
     #    New-Cluster -Name “WSFCSQLCluster” -Node sqlao-vm1,sqlao-vm2 -AdministrativeAccessPoint DNS
 
+    $pw = convertto-securestring $safeModePassword -AsPlainText -Force
+    $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist ".\testadminuser",$pw
+    $dnsSuffix = "lugizi.ao.contoso.com"
+
     Node localhost
     {
         # $Path = $env:TEMP; $Installer = "chrome_installer.exe"; Invoke-WebRequest "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -OutFile $Path\$Installer; Start-Process -FilePath $Path\$Installer -Args "/silent /install" -Verb RunAs -Wait; Remove-Item $Path\$Installer
@@ -82,94 +86,60 @@ Configuration Cluster
             DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringCmdInterfaceFeature'
         }
 
-        LocalConfigurationManager 
+        Registry EnableLocalAccountForWindowsCluster #ResourceName
+        {
+            Key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\'
+            ValueName = 'LocalAccountTokenFilterPolicy'
+            Ensure = 'Present'
+            Force =  $true
+            ValueData = 1
+            ValueType = 'Dword'
+            DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringServerToolsFeature'
+        }
+
+        Registry SetDomain #ResourceName
+        {
+            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
+            ValueName = 'Domain'
+            Ensure = 'Present'
+            Force =  $true
+            DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
+            ValueData = $dnsSuffix
+            ValueType = 'String'
+        }
+        Registry SetNVDomain #ResourceName
+        {
+            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
+            ValueName = 'NV Domain'
+            Ensure = 'Present'
+            Force =  $true
+            DependsOn = '[Registry]SetDomain'
+            ValueData = $dnsSuffix
+            ValueType = 'String'
+        }
+
+        LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true
         }
-    }
 
-    Node localhost
-    {
-        $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-        $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist ".\testadminuser",$pw
-        # https://github.com/PowerShell/SqlServerDsc#sqlserviceaccount
-        SqlServiceAccount SetServiceAccount_User
+        Script DNSReboot
         {
-            ServerName     = $env:COMPUTERNAME
-            InstanceName   = 'MSSQLSERVER'
-            ServiceType    = 'DatabaseEngine'
-            ServiceAccount = $cred
-            RestartService = $true
-            PsDscRunAsCredential = $cred
-        }
-
-        # Script SetDNSSuffix
-        # {
-        #     SetScript = {
-        #         $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'IPEnabled=True'
-        #         $adapter.SetDNSDomain('lugizi.ao.contoso.com')
-        #     }
-        #     TestScript = {
-        #         return $false
-        #     }
-        #     GetScript = { @{ Result = '' }}
-        #     PsDscRunAsCredential = $cred
-        # }
-
-        LocalConfigurationManager 
-        {
-            RebootNodeIfNeeded = $true
-        }
-
-        Script EnableLocalAccountForWindowsCluster
-        {
-            SetScript = {
-                Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1
-            }
             TestScript = {
-                return $false
+                return (Test-Path HKLM:\SOFTWARE\MyMainKey\RebootKey)
             }
-            GetScript = { @{ Result = '' }}
-            PsDscRunAsCredential = $cred
+            SetScript = {
+                New-Item -Path HKLM:\SOFTWARE\MyMainKey\RebootKey -Force
+                 $global:DSCMachineStatus = 1 
+    
+            }
+            GetScript = { return @{result = 'result'}}
+            DependsOn = '[Registry]SetNVDomain'
         }
     }
 
     Node localhost
     {
-        # if ($env:COMPUTERNAME -eq 'sqlao1') {
-        #     $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-        #     $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
-
-        #     Script CreateWindowsCluster
-        #     {
-        #         PsDscRunAsCredential = $cred
-        #         SetScript =
-        #         {
-        #             New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
-        #         }
-        #         TestScript = {
-        #             Start-Sleep -s 120
-        #             return $false
-        #         }
-        #         GetScript = { @{ Result = '' } }
-        #         DependsOn = '[Script]EnableLocalAccountForWindowsCluster'
-        #     }
-    
-        #     Script EnableAvailabilityGroupOnPrimary
-        #     {
-        #         SetScript =
-        #         {
-        #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-        #         }
-        #         TestScript = {
-        #             return $false
-        #         }
-        #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-        #         DependsOn = '[Script]CreateWindowsCluster'
-        #         PsDscRunAsCredential = $cred
-        #     }
-        # }
-
         File DirectoryTemp
         {
             Ensure = "Present"  # You can also set Ensure to "Absent"
@@ -219,43 +189,91 @@ Configuration Cluster
             Ensure = 'Present'
             DependsOn = '[Script]GetTScripts'
         }
+
+        # https://github.com/PowerShell/SqlServerDsc#sqlserviceaccount
+        SqlServiceAccount SetServiceAccount_User
+        {
+            ServerName     = $env:COMPUTERNAME
+            InstanceName   = 'MSSQLSERVER'
+            ServiceType    = 'DatabaseEngine'
+            ServiceAccount = $cred
+            RestartService = $true
+            PsDscRunAsCredential = $cred
+        }
     }
 
     Node localhost
     {
-        # if ($env:COMPUTERNAME -eq 'sqlao1') {
-            
-        # }
-        
-        # if ($env:COMPUTERNAME -eq 'sqlao2') {
-        #     Script JoinSecondary
-        #     {
-        #         SetScript =
-        #         {
-        #             #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-        #         }
-        #         TestScript = {
-        #             Start-Sleep -s 180
-        #             return $true
-        #         }
-        #         GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-        #         #DependsOn = '[Script]CreateWindowsCluster'
-        #     }
+        if ($env:COMPUTERNAME -eq 'sqlao1') {
+            $pw = convertto-securestring $safeModePassword -AsPlainText -Force
+            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
 
-        #     Script EnableAvailabilityGroupOnSecondary
-        #     {
-        #         SetScript =
-        #         {
-        #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-        #         }
-        #         TestScript = {
-        #             return $false
-        #         }
-        #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-        #         # DependsOn = '[Script]JoinSecondary'
-        #     }
-        # }
+            Script CreateWindowsCluster
+            {
+                PsDscRunAsCredential = $cred
+                SetScript =
+                {
+                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
+                }
+                TestScript = {
+                    Start-Sleep -s 120
+                    return $false
+                }
+                GetScript = { @{ Result = '' } }
+                DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
+            }
+    
+            Script EnableAvailabilityGroupOnPrimary
+            {
+                SetScript =
+                {
+                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+                DependsOn = '[Script]CreateWindowsCluster'
+                PsDscRunAsCredential = $cred
+            }
+        }
     }
+
+    # Node localhost
+    # {
+    #     # if ($env:COMPUTERNAME -eq 'sqlao1') {
+            
+    #     # }
+        
+    #     # if ($env:COMPUTERNAME -eq 'sqlao2') {
+    #     #     Script JoinSecondary
+    #     #     {
+    #     #         SetScript =
+    #     #         {
+    #     #             #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
+    #     #         }
+    #     #         TestScript = {
+    #     #             Start-Sleep -s 180
+    #     #             return $true
+    #     #         }
+    #     #         GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
+    #     #         #DependsOn = '[Script]CreateWindowsCluster'
+    #     #     }
+
+    #     #     Script EnableAvailabilityGroupOnSecondary
+    #     #     {
+    #     #         SetScript =
+    #     #         {
+    #     #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+    #     #         }
+    #     #         TestScript = {
+    #     #             return $false
+    #     #         }
+    #     #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+    #     #         # DependsOn = '[Script]JoinSecondary'
+    #     #     }
+    #     # }
+    # }
 
     # Node localhost
     # {

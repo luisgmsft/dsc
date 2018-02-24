@@ -32,20 +32,6 @@ Configuration Infrastructure
             DependsOn = '[WindowsFeature]DnsToolsFeature'
         }
 
-        # Script SetDNSSuffix
-        # {
-        #     SetScript = {
-        #         $adapter=Get-WmiObject Win32_NetworkAdapterConfiguration -filter 'index=0'
-        #         $adapter.SetDNSDomain('lugizi.ao.contoso.com')
-        #     }
-        #     TestScript = {
-        #         return $false
-        #     }
-        #     GetScript = { @{ Result = '' }}
-        #     PsDscRunAsCredential = $cred
-        #     DependsOn = '[xDnsServerPrimaryZone]PrimaryZone'
-        # }
-
         $dnsSuffix = "lugizi.ao.contoso.com"
 
         Registry SetDomain #ResourceName
@@ -69,45 +55,23 @@ Configuration Infrastructure
             ValueType = 'String'
         }
 
-        # Script SetDNSSuffix  
-        # {
-        #     SetScript = 
-        #     {
-        #         Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name Domain -Value $dnsSuffix
-        #         Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "NV Domain" -Value $dnsSuffix
-        #     }   
-        #     TestScript = 
-        #     {
-        #         return $false
-        #         # $currentSuffix = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "NV Domain" -ErrorAction SilentlyContinue)."NV Domain"
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+        }
 
-        #         # if ($currentSuffix -ne $dnsSuffix){
-        #         #     return $false
-        #         # }
-        #         # return $true
-        #     }   
-        #     GetScript = 
-        #     {
-        #         $currentSuffix = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\" -Name "NV Domain" -ErrorAction SilentlyContinue)."NV Domain"
-
-        #         return $currentSuffix
-        #     }
-        #     DependsOn = '[xDnsServerPrimaryZone]PrimaryZone'
-        #     PsDscRunAsCredential = $cred     
-        # }
-
-        # Script Reboot
-        # {
-        #     TestScript = {
-        #         return (Test-Path HKLM:\SOFTWARE\MyMainKey\RebootKey)
-        #     }
-        #     SetScript = {
-        #         New-Item -Path HKLM:\SOFTWARE\MyMainKey\RebootKey -Force
-        #          $global:DSCMachineStatus = 1 
+        Script Reboot
+        {
+            TestScript = {
+                return (Test-Path HKLM:\SOFTWARE\MyMainKey\RebootKey)
+            }
+            SetScript = {
+                New-Item -Path HKLM:\SOFTWARE\MyMainKey\RebootKey -Force
+                 $global:DSCMachineStatus = 1 
     
-        #     }
-        #     GetScript = { return @{result = 'result'}}
-        #     DependsOn = '[Script]SetDNSSuffix'
-        # }
+            }
+            GetScript = { return @{result = 'result'}}
+            DependsOn = '[Registry]SetNVDomain'
+        }
     }
 }
