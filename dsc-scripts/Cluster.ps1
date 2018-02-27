@@ -148,26 +148,26 @@ Configuration Cluster
             DestinationPath = "C:\TempDSCAssets"
         }
 
-        Script GetCerts
-        { 
-            SetScript = 
-            { 
-                $webClient = New-Object System.Net.WebClient 
-                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
-                $webClient.DownloadFile($uri, "C:\TempDSCAssets\certs.zip") 
-            } 
-            TestScript = { Test-Path "C:\TempDSCAssets\certs.zip" } 
-            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\certs.zip") } } 
-            DependsOn = '[File]DirectoryTemp'
-        }
+        # Script GetCerts
+        # { 
+        #     SetScript = 
+        #     { 
+        #         $webClient = New-Object System.Net.WebClient 
+        #         $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
+        #         $webClient.DownloadFile($uri, "C:\TempDSCAssets\certs.zip") 
+        #     } 
+        #     TestScript = { Test-Path "C:\TempDSCAssets\certs.zip" } 
+        #     GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\certs.zip") } } 
+        #     DependsOn = '[File]DirectoryTemp'
+        # }
 
-        archive CertZipFile
-        {
-            Path = 'C:\TempDSCAssets\certs.zip'
-            Destination = 'c:\TempDSCAssets\'
-            Ensure = 'Present'
-            DependsOn = '[Script]GetCerts'
-        }
+        # archive CertZipFile
+        # {
+        #     Path = 'C:\TempDSCAssets\certs.zip'
+        #     Destination = 'c:\TempDSCAssets\'
+        #     Ensure = 'Present'
+        #     DependsOn = '[Script]GetCerts'
+        # }
 
         Script GetTScripts 
         { 
@@ -237,43 +237,24 @@ Configuration Cluster
                 PsDscRunAsCredential = $cred
             }
         }
+
+        if ($env:COMPUTERNAME -eq 'sqlao2') {
+            Script EnableAvailabilityGroupOnSecondary
+            {
+                SetScript =
+                {
+                    # Start-Sleep -s 180
+                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+                DependsOn = '[Script]CreateWindowsCluster'
+                PsDscRunAsCredential = $cred
+            }
+        }
     }
-
-    # Node localhost
-    # {
-    #     # if ($env:COMPUTERNAME -eq 'sqlao1') {
-            
-    #     # }
-        
-    #     # if ($env:COMPUTERNAME -eq 'sqlao2') {
-    #     #     Script JoinSecondary
-    #     #     {
-    #     #         SetScript =
-    #     #         {
-    #     #             #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-    #     #         }
-    #     #         TestScript = {
-    #     #             Start-Sleep -s 180
-    #     #             return $true
-    #     #         }
-    #     #         GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-    #     #         #DependsOn = '[Script]CreateWindowsCluster'
-    #     #     }
-
-    #     #     Script EnableAvailabilityGroupOnSecondary
-    #     #     {
-    #     #         SetScript =
-    #     #         {
-    #     #             Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-    #     #         }
-    #     #         TestScript = {
-    #     #             return $false
-    #     #         }
-    #     #         GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-    #     #         # DependsOn = '[Script]JoinSecondary'
-    #     #     }
-    #     # }
-    # }
 
     # Node localhost
     # {
