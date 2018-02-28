@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/spikes/spikes/nodejs-spike/schemas/buildingBlocks.json",
+    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/master/schemas/buildingBlocks.json",
     "contentVersion": "1.0.0.0",
     "parameters": {
       "buildingBlocks": {
@@ -28,7 +28,7 @@
               },
               "nics": [
                 {
-                  "isPublic": false,
+                  "isPublic": true,
                   "subnetName": "cluster",
                   "privateIPAllocationMethod": "Static",
                   "startingIPAddress": "172.19.0.10",
