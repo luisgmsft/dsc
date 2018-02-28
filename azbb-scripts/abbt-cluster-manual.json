@@ -28,7 +28,7 @@
               },
               "nics": [
                 {
-                  "isPublic": false,
+                  "isPublic": true,
                   "subnetName": "cluster",
                   "privateIPAllocationMethod": "Static",
                   "startingIPAddress": "172.19.0.10",

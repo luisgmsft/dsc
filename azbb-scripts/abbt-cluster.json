@@ -148,7 +148,7 @@
             "settings":[
               {
                 "vms": [
-                  "sqloa-vm1", 
+                  "sqlao-vm1", 
                   "sqlao-vm2"
                 ],
                 "extensions": [
