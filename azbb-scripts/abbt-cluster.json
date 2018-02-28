@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/spikes/spikes/nodejs-spike/schemas/buildingBlocks.json",
+    "$schema": "https://raw.githubusercontent.com/mspnp/template-building-blocks/master/schemas/buildingBlocks.json",
     "contentVersion": "1.0.0.0",
     "parameters": {
       "buildingBlocks": {
@@ -88,10 +88,10 @@
                 "name": "sql",
                 "publisher": "Microsoft.Powershell",
                 "type": "DSC",
-                "typeHandlerVersion": "2.20",
+                "typeHandlerVersion": "2.1",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                    "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
                     "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure"
                   },
                   "protectedSettings": {
@@ -140,24 +140,34 @@
               },
               "storageAccounts": {
                 "count": 2
-              },
-              "extensions": [              
-              {
-                "name": "sql",
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.20",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "Modulesurl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                    "ConfigurationFunction":"Cluster.ps1\\Cluster"
-                  },
-                  "protectedSettings": {
-                    "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
-                  }
-                }
-              ]
+              }
             } 
+          },
+          {
+            "type": "VirtualMachineExtension",
+            "settings":[
+              {
+                "vms": [
+                  "sqloa-vm1", 
+                  "sqlao-vm2"
+                ],
+                "extensions": [
+                  {
+                    "name": "sql",
+                    "publisher": "Microsoft.Powershell",
+                    "type": "DSC",
+                    "typeHandlerVersion": "2.1",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {
+                        "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                        "ConfigurationFunction":"Cluster.ps1\\Cluster"
+                      },
+                      "protectedSettings": {
+                        "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                      }
+                    }                ]
+              }
+            ]
           }
         ]
       }
