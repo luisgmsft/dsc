@@ -205,9 +205,6 @@ Configuration Cluster
     Node localhost
     {
         if ($env:COMPUTERNAME -eq 'sqlao1') {
-            $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-            $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist "sqlao1\testadminuser",$pw
-
             Script CreateWindowsCluster
             {
                 PsDscRunAsCredential = $cred
@@ -241,16 +238,15 @@ Configuration Cluster
         if ($env:COMPUTERNAME -eq 'sqlao2') {
             Script EnableAvailabilityGroupOnSecondary
             {
-                SetScript =
-                {
-                    # Start-Sleep -s 180
+                SetScript = {
+                    Start-Sleep -s 180
                     Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
                 }
                 TestScript = {
                     return $false
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]CreateWindowsCluster'
+                # DependsOn = '[Script]CreateWindowsCluster'
                 PsDscRunAsCredential = $cred
             }
         }
