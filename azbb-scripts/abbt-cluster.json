@@ -46,7 +46,7 @@
               },
               "nics": [
                 {
-                  "isPublic": true,
+                  "isPublic": false,
                   "subnetName": "default",
                   "privateIPAllocationMethod": "Static",
                   "startingIPAddress": "172.18.0.5",
