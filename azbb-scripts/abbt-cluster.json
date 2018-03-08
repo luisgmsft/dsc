@@ -46,7 +46,7 @@
               },
               "nics": [
                 {
-                  "isPublic": false,
+                  "isPublic": true,
                   "subnetName": "default",
                   "privateIPAllocationMethod": "Static",
                   "startingIPAddress": "172.18.0.5",
@@ -159,13 +159,14 @@
                     "typeHandlerVersion": "2.1",
                     "autoUpgradeMinorVersion": true,
                     "settings": {
-                        "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                        "ConfigurationFunction":"Cluster.ps1\\Cluster"
-                      },
-                      "protectedSettings": {
-                        "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
-                      }
-                    }                ]
+                      "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                      "ConfigurationFunction":"Cluster.ps1\\Cluster"
+                    },
+                    "protectedSettings": {
+                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                    }
+                  }
+                ]
               }
             ]
           }

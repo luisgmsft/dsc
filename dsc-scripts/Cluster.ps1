@@ -3,7 +3,8 @@ Configuration Cluster
     Param(
         [string]$safeModePassword = "test$!Passw0rd111"
     )
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
+
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement #, xFailOverCluster, xPendingReboot
 
     #Step by step to reverse
     #https://www.mssqltips.com/sqlservertip/4991/implement-a-sql-server-2016-availability-group-without-active-directory-part-1/
@@ -136,6 +137,12 @@ Configuration Cluster
             GetScript = { return @{result = 'result'}}
             DependsOn = '[Registry]SetNVDomain'
         }
+
+        # xPendingReboot Reboot
+        # {
+        #     Name='RebootServer'
+        #     DependsOn='[Registry]SetNVDomain'
+        # }
     }
 
     Node localhost
@@ -182,7 +189,7 @@ Configuration Cluster
             DependsOn = '[File]DirectoryTemp'
         }
 
-        archive ZipFile
+        Archive ZipFile
         {
             Path = 'C:\TempDSCAssets\tscripts.zip'
             Destination = 'c:\TempDSCAssets\'
@@ -213,11 +220,11 @@ Configuration Cluster
                     New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
                 }
                 TestScript = {
-                    Start-Sleep -s 120
+                    Start-Sleep -s 180
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
-                DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
+                #DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
             }
     
             Script EnableAvailabilityGroupOnPrimary
@@ -236,17 +243,26 @@ Configuration Cluster
         }
 
         if ($env:COMPUTERNAME -eq 'sqlao2') {
+            # xWaitForCluster WaitForCluster
+            # {
+            #     Name='sqlaocl'
+            #     RetryIntervalSec=20
+            #     RetryCount=30
+            #     # DependsOn='[xFOCluster]FailoverCluster'
+            #     PsDscRunAsCredential = $cred
+            # }
+
             Script EnableAvailabilityGroupOnSecondary
             {
                 SetScript = {
-                    Start-Sleep -s 180
                     Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
                 }
                 TestScript = {
+                    Start-Sleep -s 240
                     return $false
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                # DependsOn = '[Script]CreateWindowsCluster'
+                # DependsOn = '[xWaitForCluster]WaitForCluster'
                 PsDscRunAsCredential = $cred
             }
         }
@@ -254,19 +270,6 @@ Configuration Cluster
 
     # Node localhost
     # {
-    #     Script WaitForAG
-    #         {
-    #             SetScript =
-    #             {
-    #                 #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-    #             }
-    #             TestScript = {
-    #                 Start-Sleep -s 240
-    #                 return $true
-    #             }
-    #             GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-    #         }
-        
     #     if ($env:COMPUTERNAME -eq 'sqlao1')
     #     {
     #         SqlScript 'Primary-Step-1' {
@@ -297,18 +300,6 @@ Configuration Cluster
 
     # Node localhost
     # {
-    #     Script WaitForStep1
-    #         {
-    #             SetScript =
-    #             {
-    #                 #Add-ClusterNode -Name 'sqlao2' -Cluster 'SQLAOAG'
-    #             }
-    #             TestScript = {
-    #                 Start-Sleep -s 280
-    #                 return $true
-    #             }
-    #             GetScript = { @{ Result = (Get-ClusterNode | Format-List) } }
-    #         }
         
     #     if ($env:COMPUTERNAME -eq 'sqlao1')
     #     {
