@@ -6,15 +6,11 @@ CREATE USER login_AvailabilityGroup
 FOR LOGIN login_AvailabilityGroup  
 GO
  
--- Import the public key portion of the certificate from the other node
--- CREATE CERTIFICATE SQLAO2_cert
--- AUTHORIZATION login_AvailabilityGroup
--- FROM FILE = 'c:\TempDSCAssets\SQLAO2_cert.cert'
--- GO
-CREATE CERTIFICATE SQLAO2_cert 
+CREATE CERTIFICATE SQLAO2_cert
 AUTHORIZATION login_AvailabilityGroup 
-FROM FILE='c:\TempDSCAssets\SQLAO2_cert.cer' 
-    WITH PRIVATE KEY(FILE='c:\TempDSCAssets\SQLAO2_key.pvk', DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd'); 
+FROM FILE='c:\TempDSCAssets\SQLAO2_cert.cert' 
+    WITH PRIVATE KEY(FILE='c:\TempDSCAssets\SQLAO2_key.pvk'
+    , DECRYPTION BY PASSWORD='y0ur$ecUr3PAssw0rd'); 
 GO 
  
 -- Grant the CONNECT permission to the login

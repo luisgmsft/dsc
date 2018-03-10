@@ -4,7 +4,7 @@ Configuration Cluster
         [string]$safeModePassword = "test$!Passw0rd111"
     )
 
-    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement #, xFailOverCluster, xPendingReboot
+    Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
 
     #Step by step to reverse
     #https://www.mssqltips.com/sqlservertip/4991/implement-a-sql-server-2016-availability-group-without-active-directory-part-1/
@@ -119,62 +119,35 @@ Configuration Cluster
             ValueType = 'String'
         }
 
-        LocalConfigurationManager
-        {
-            RebootNodeIfNeeded = $true
-        }
-
-        Script DNSReboot
-        {
-            TestScript = {
-                return (Test-Path HKLM:\SOFTWARE\MyMainKey\RebootKey)
-            }
-            SetScript = {
-                New-Item -Path HKLM:\SOFTWARE\MyMainKey\RebootKey -Force
-                 $global:DSCMachineStatus = 1 
-    
-            }
-            GetScript = { return @{result = 'result'}}
-            DependsOn = '[Registry]SetNVDomain'
-        }
-
-        # xPendingReboot Reboot
-        # {
-        #     Name='RebootServer'
-        #     DependsOn='[Registry]SetNVDomain'
-        # }
-    }
-
-    Node localhost
-    {
         File DirectoryTemp
         {
             Ensure = "Present"  # You can also set Ensure to "Absent"
             Type = "Directory" # Default is "File".
             Recurse = $false
             DestinationPath = "C:\TempDSCAssets"
+            DependsOn = '[Registry]SetNVDomain'
         }
 
-        # Script GetCerts
-        # { 
-        #     SetScript = 
-        #     { 
-        #         $webClient = New-Object System.Net.WebClient 
-        #         $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
-        #         $webClient.DownloadFile($uri, "C:\TempDSCAssets\certs.zip") 
-        #     } 
-        #     TestScript = { Test-Path "C:\TempDSCAssets\certs.zip" } 
-        #     GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\certs.zip") } } 
-        #     DependsOn = '[File]DirectoryTemp'
-        # }
+        Script GetCerts
+        { 
+            SetScript = 
+            { 
+                $webClient = New-Object System.Net.WebClient 
+                $uri = New-Object System.Uri "https://lugizidscstorage.blob.core.windows.net/isos/certs.zip" 
+                $webClient.DownloadFile($uri, "C:\TempDSCAssets\certs.zip") 
+            } 
+            TestScript = { Test-Path "C:\TempDSCAssets\certs.zip" } 
+            GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\certs.zip") } } 
+            DependsOn = '[File]DirectoryTemp'
+        }
 
-        # archive CertZipFile
-        # {
-        #     Path = 'C:\TempDSCAssets\certs.zip'
-        #     Destination = 'c:\TempDSCAssets\'
-        #     Ensure = 'Present'
-        #     DependsOn = '[Script]GetCerts'
-        # }
+        Archive CertZipFile
+        {
+            Path = 'C:\TempDSCAssets\certs.zip'
+            Destination = 'c:\TempDSCAssets\'
+            Ensure = 'Present'
+            DependsOn = '[Script]GetCerts'
+        }
 
         Script GetTScripts 
         { 
@@ -206,6 +179,25 @@ Configuration Cluster
             ServiceAccount = $cred
             RestartService = $true
             PsDscRunAsCredential = $cred
+            DependsOn = '[Registry]SetNVDomain'
+        }
+
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+        }
+
+        Script DNSReboot
+        {
+            TestScript = {
+                return (Test-Path HKLM:\SOFTWARE\MyMainKey\RebootKey)
+            }
+            SetScript = {
+                New-Item -Path HKLM:\SOFTWARE\MyMainKey\RebootKey -Force
+                 $global:DSCMachineStatus = 1
+            }
+            GetScript = { return @{result = 'result'}}
+            DependsOn = '[Registry]SetNVDomain'
         }
     }
 
@@ -217,14 +209,13 @@ Configuration Cluster
                 PsDscRunAsCredential = $cred
                 SetScript =
                 {
-                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress 172.18.0.100 -AdministrativeAccessPoint Dns
+                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
                 }
                 TestScript = {
-                    Start-Sleep -s 180
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
-                #DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
+                DependsOn = '[Script]DNSReboot'
             }
     
             Script EnableAvailabilityGroupOnPrimary
@@ -243,27 +234,18 @@ Configuration Cluster
         }
 
         if ($env:COMPUTERNAME -eq 'sqlao2') {
-            # xWaitForCluster WaitForCluster
-            # {
-            #     Name='sqlaocl'
-            #     RetryIntervalSec=20
-            #     RetryCount=30
-            #     # DependsOn='[xFOCluster]FailoverCluster'
-            #     PsDscRunAsCredential = $cred
-            # }
-
             Script EnableAvailabilityGroupOnSecondary
             {
                 SetScript = {
+                    Start-Sleep -s 120
                     Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
                 }
                 TestScript = {
-                    Start-Sleep -s 240
                     return $false
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                # DependsOn = '[xWaitForCluster]WaitForCluster'
                 PsDscRunAsCredential = $cred
+                DependsOn = '[Script]DNSReboot'
             }
         }
     }
@@ -274,12 +256,11 @@ Configuration Cluster
     #     {
     #         SqlScript 'Primary-Step-1' {
     #             ServerInstance = 'sqlao1'
-    #             SetFilePath = 'c:\TempDSCAssets\vm1-step1.sql'
+    #             SetFilePath = 'c:\TempDSCAssets\node1-step-1.sql'
     #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
     #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
     #             PsDscRunAsCredential = $cred
-    #             DependsOn = '[Script]WaitForAG'
     #         }
     #     }
 
@@ -287,30 +268,27 @@ Configuration Cluster
     #     {
     #         SqlScript 'Secondary-Step-1' {
     #             ServerInstance = 'sqlao2'
-    #             SetFilePath = 'c:\TempDSCAssets\vm2-step1.sql'
+    #             SetFilePath = 'c:\TempDSCAssets\node2-step-1.sql'
     #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
     #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
     #             PsDscRunAsCredential = $cred
-    #             DependsOn = '[Script]WaitForAG'
     #         }
-
     #     }
     # }
 
     # Node localhost
     # {
-        
     #     if ($env:COMPUTERNAME -eq 'sqlao1')
     #     {
     #         SqlScript 'Primary-Step-2' {
     #             ServerInstance = 'sqlao1'
-    #             SetFilePath = 'c:\TempDSCAssets\vm1-step2.sql'
+    #             SetFilePath = 'c:\TempDSCAssets\node1-step-2.sql'
     #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
     #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
     #             PsDscRunAsCredential = $cred
-    #             DependsOn = '[Script]WaitForStep1'
+    #             DependsOn = '[SqlScript]Primary-Step-1'
     #         }
     #     }
 
@@ -318,14 +296,42 @@ Configuration Cluster
     #     {
     #         SqlScript 'Secondary-Step-2' {
     #             ServerInstance = 'sqlao2'
-    #             SetFilePath = 'c:\TempDSCAssets\vm2-step2.sql'
+    #             SetFilePath = 'c:\TempDSCAssets\node2-step-2.sql'
     #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
     #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
     #             PsDscRunAsCredential = $cred
-    #             DependsOn = '[Script]WaitForStep1'
+    #             DependsOn = '[SqlScript]Secondary-Step-1'
     #         }
+    #     }
+    # }
 
+    # Node localhost
+    # {
+    #     if ($env:COMPUTERNAME -eq 'sqlao1')
+    #     {
+    #         SqlScript 'Primary-Step-3' {
+    #             ServerInstance = 'sqlao1'
+    #             SetFilePath = 'c:\TempDSCAssets\node1-step-3.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[SqlScript]Primary-Step-2'
+    #         }
+    #     }
+
+    #     if ($env:COMPUTERNAME -eq 'sqlao2')
+    #     {
+    #         SqlScript 'Secondary-Step-3' {
+    #             ServerInstance = 'sqlao2'
+    #             SetFilePath = 'c:\TempDSCAssets\node2-step-3.sql'
+    #             TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+    #             GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
+
+    #             PsDscRunAsCredential = $cred
+    #             DependsOn = '[SqlScript]Secondary-Step-2'
+    #         }
     #     }
     # }
 }
