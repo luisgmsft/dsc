@@ -1,8 +1,12 @@
 Configuration Cluster
 {
     Param(
-        [string]$safeModePassword = "test$!Passw0rd111"
+        [String]$safeModePassword = "test$!Passw0rd111"
     )
+
+    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
+    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
+    $dnsSuffix = "lugizi.ao.contoso.com"
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
 
@@ -14,11 +18,9 @@ Configuration Cluster
     #    https://docs.microsoft.com/en-us/powershell/module/failoverclusters/new-cluster?view=win10-ps
     #    New-Cluster -Name “WSFCSQLCluster” -Node sqlao-vm1,sqlao-vm2 -AdministrativeAccessPoint DNS
 
-    $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-    $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist ".\testadminuser",$pw
-    $dnsSuffix = "lugizi.ao.contoso.com"
+    
 
-    Node localhost
+    Node $AllNodes.NodeName
     {
         # $Path = $env:TEMP; $Installer = "chrome_installer.exe"; Invoke-WebRequest "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -OutFile $Path\$Installer; Start-Process -FilePath $Path\$Installer -Args "/silent /install" -Verb RunAs -Wait; Remove-Item $Path\$Installer
         # https://go.microsoft.com/fwlink/?LinkId=708343&clcid=0x409
@@ -182,11 +184,6 @@ Configuration Cluster
             DependsOn = '[Registry]SetNVDomain'
         }
 
-        LocalConfigurationManager
-        {
-            RebootNodeIfNeeded = $true
-        }
-
         Script DNSReboot
         {
             TestScript = {
@@ -197,57 +194,82 @@ Configuration Cluster
                  $global:DSCMachineStatus = 1
             }
             GetScript = { return @{result = 'result'}}
-            DependsOn = '[Registry]SetNVDomain'
+            DependsOn = '[SqlServiceAccount]SetServiceAccount_User','[Archive]CertZipFile','[Archive]ZipFile'
+            PsDscRunAsCredential = $cred
+        }
+
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
+            ActionAfterReboot = 'ContinueConfiguration'
+            ConfigurationMode = 'ApplyOnly'
+            AllowModuleOverwrite = $true
         }
     }
 
-    Node localhost
+    Node 'sqlao1'
     {
-        if ($env:COMPUTERNAME -eq 'sqlao1') {
-            Script CreateWindowsCluster
+        WaitForAll Reboot
+        {
+            ResourceName      = '[Script]DNSReboot'
+            NodeName          = 'sqlao1','sqlao2'
+            RetryIntervalSec  = 15
+            RetryCount        = 30
+        }
+        #if ($env:COMPUTERNAME -eq 'sqlao1') {
+        Script CreateWindowsCluster
+        {
+            PsDscRunAsCredential = $cred
+            SetScript =
             {
-                PsDscRunAsCredential = $cred
-                SetScript =
-                {
-                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = '' } }
-                DependsOn = '[Script]DNSReboot'
+                New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
             }
-    
-            Script EnableAvailabilityGroupOnPrimary
-            {
-                SetScript =
-                {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]CreateWindowsCluster'
-                PsDscRunAsCredential = $cred
+            TestScript = {
+                return $false
             }
+            GetScript = { @{ Result = '' } }
+            DependsOn = '[WaitForAll]Reboot'
         }
 
-        if ($env:COMPUTERNAME -eq 'sqlao2') {
-            Script EnableAvailabilityGroupOnSecondary
+        Script EnableAvailabilityGroupOnPrimary
+        {
+            SetScript =
             {
-                SetScript = {
-                    Start-Sleep -s 120
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]DNSReboot'
+                Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
             }
+            TestScript = {
+                return $false
+            }
+            GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+            DependsOn = '[Script]CreateWindowsCluster'
+            PsDscRunAsCredential = $cred
         }
+        #}
+    }
+    
+    Node 'sqlao2'
+    {
+        WaitForAll ClusterSetup
+        {
+            ResourceName      = '[Script]CreateWindowsCluster'
+            NodeName          = 'sqlao1'
+            RetryIntervalSec  = 15
+            RetryCount        = 30
+        }
+        #if ($env:COMPUTERNAME -eq 'sqlao2') {
+        Script EnableAvailabilityGroupOnSecondary
+        {
+            SetScript = {
+                Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+            }
+            TestScript = {
+                return $false
+            }
+            GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+            PsDscRunAsCredential = $cred
+            DependsOn = '[WaitForAll]ClusterSetup'
+        }
+        #}
     }
 
     # Node localhost

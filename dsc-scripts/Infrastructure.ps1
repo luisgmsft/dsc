@@ -3,13 +3,15 @@ Configuration Infrastructure
     Param(
         [string]$safeModePassword = "test$!Passw0rd111"
     )
+
+    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
+    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
+    $dnsSuffix = "lugizi.ao.contoso.com"
+
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xDnsServer
 
     Node localhost
     {
-        $pw = convertto-securestring $safeModePassword -AsPlainText -Force
-        $cred = new-object -typename System.Management.Automation.PSCredential -argumentlist ".\testadminuser",$pw
-
         WindowsFeature DnsFeature
         {
             Ensure = "Present" 
@@ -32,8 +34,6 @@ Configuration Infrastructure
             DependsOn = '[WindowsFeature]DnsToolsFeature'
         }
 
-        $dnsSuffix = "lugizi.ao.contoso.com"
-
         Registry SetDomain #ResourceName
         {
             Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
@@ -55,11 +55,6 @@ Configuration Infrastructure
             ValueType = 'String'
         }
 
-        LocalConfigurationManager
-        {
-            RebootNodeIfNeeded = $true
-        }
-
         Script Reboot
         {
             TestScript = {
@@ -72,6 +67,11 @@ Configuration Infrastructure
             }
             GetScript = { return @{result = 'result'}}
             DependsOn = '[Registry]SetNVDomain'
+        }
+
+        LocalConfigurationManager
+        {
+            RebootNodeIfNeeded = $true
         }
     }
 }
