@@ -20,7 +20,7 @@ Configuration Cluster
 
     
 
-    Node $AllNodes.NodeName
+    Node 'localhost'
     {
         # $Path = $env:TEMP; $Installer = "chrome_installer.exe"; Invoke-WebRequest "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -OutFile $Path\$Installer; Start-Process -FilePath $Path\$Installer -Args "/silent /install" -Verb RunAs -Wait; Remove-Item $Path\$Installer
         # https://go.microsoft.com/fwlink/?LinkId=708343&clcid=0x409
@@ -207,69 +207,71 @@ Configuration Cluster
         }
     }
 
-    Node 'sqlao1'
+    Node 'localhost'
     {
-        WaitForAll Reboot
-        {
-            ResourceName      = '[Script]DNSReboot'
-            NodeName          = 'sqlao1','sqlao2'
-            RetryIntervalSec  = 15
-            RetryCount        = 30
-        }
-        #if ($env:COMPUTERNAME -eq 'sqlao1') {
-        Script CreateWindowsCluster
-        {
-            PsDscRunAsCredential = $cred
-            SetScript =
+        if ($env:COMPUTERNAME -eq 'sqlao1') {
+            WaitForAll Reboot
             {
-                New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
+                ResourceName      = '[Script]DNSReboot'
+                NodeName          = 'localhost'
+                RetryIntervalSec  = 15
+                RetryCount        = 30
             }
-            TestScript = {
-                return $false
+            
+            Script CreateWindowsCluster
+            {
+                PsDscRunAsCredential = $cred
+                SetScript =
+                {
+                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = '' } }
+                DependsOn = '[WaitForAll]Reboot'
             }
-            GetScript = { @{ Result = '' } }
-            DependsOn = '[WaitForAll]Reboot'
-        }
 
-        Script EnableAvailabilityGroupOnPrimary
-        {
-            SetScript =
+            Script EnableAvailabilityGroupOnPrimary
             {
-                Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+                SetScript =
+                {
+                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+                DependsOn = '[Script]CreateWindowsCluster'
+                PsDscRunAsCredential = $cred
             }
-            TestScript = {
-                return $false
-            }
-            GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-            DependsOn = '[Script]CreateWindowsCluster'
-            PsDscRunAsCredential = $cred
         }
-        #}
     }
     
-    Node 'sqlao2'
+    Node 'localhost'
     {
-        WaitForAll ClusterSetup
-        {
-            ResourceName      = '[Script]CreateWindowsCluster'
-            NodeName          = 'sqlao1'
-            RetryIntervalSec  = 15
-            RetryCount        = 30
-        }
-        #if ($env:COMPUTERNAME -eq 'sqlao2') {
-        Script EnableAvailabilityGroupOnSecondary
-        {
-            SetScript = {
-                Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+        if ($env:COMPUTERNAME -eq 'sqlao2') {
+            WaitForAll ClusterSetup
+            {
+                ResourceName      = '[Script]CreateWindowsCluster'
+                NodeName          = 'localhost'
+                RetryIntervalSec  = 15
+                RetryCount        = 30
             }
-            TestScript = {
-                return $false
+            
+            Script EnableAvailabilityGroupOnSecondary
+            {
+                SetScript = {
+                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+                PsDscRunAsCredential = $cred
+                DependsOn = '[WaitForAll]ClusterSetup'
             }
-            GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-            PsDscRunAsCredential = $cred
-            DependsOn = '[WaitForAll]ClusterSetup'
         }
-        #}
     }
 
     # Node localhost
