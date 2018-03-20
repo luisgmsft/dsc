@@ -20,6 +20,24 @@ Configuration ClusterNode2
             #     RetryIntervalSec  = 15
             #     RetryCount        = 30
             # }
+
+            Script WaitForPingToKickIn
+            {
+                PsDscRunAsCredential = $cred
+                SetScript =
+                {
+                    DO
+                    {
+                        start-sleep 10
+                        $Ping = Test-Connection 'sqlao1' -quiet
+                    }
+                    Until ($Ping -contains "True")
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = '' } }
+            }
             
             Script EnableAvailabilityGroupOnSecondary
             {
@@ -31,7 +49,7 @@ Configuration ClusterNode2
                 }
                 GetScript = { @{ Result = (Get-Cluster | Format-List) } }
                 PsDscRunAsCredential = $cred
-                DependsOn = '[WaitForAll]ClusterSetup'
+                DependsOn = '[Script]WaitForPingToKickIn'
             }
         # }
     }

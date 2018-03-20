@@ -20,6 +20,24 @@ Configuration ClusterNode1
             #     RetryIntervalSec  = 15
             #     RetryCount        = 30
             # }
+
+            Script WaitForPingToKickIn
+            {
+                PsDscRunAsCredential = $cred
+                SetScript =
+                {
+                    DO
+                    {
+                        start-sleep 10
+                        $Ping = Test-Connection 'sqlao2' -quiet
+                    }
+                    Until ($Ping -contains "True")
+                }
+                TestScript = {
+                    return $false
+                }
+                GetScript = { @{ Result = '' } }
+            }
             
             Script CreateWindowsCluster
             {
@@ -32,7 +50,7 @@ Configuration ClusterNode1
                     return $false
                 }
                 GetScript = { @{ Result = '' } }
-                # DependsOn = '[WaitForAll]Reboot'
+                DependsOn = '[Script]WaitForPingToKickIn'
             }
 
             Script EnableAvailabilityGroupOnPrimary
