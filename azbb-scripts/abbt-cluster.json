@@ -82,22 +82,6 @@
                   "startingIPAddress": "172.18.0.4",
                   "isPrimary": true
                 }
-              ],
-              "extensions": [              
-              {
-                "name": "sql",
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.1",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                    "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure"
-                  },
-                  "protectedSettings": {
-                    "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
-                  }
-                }
               ]
             } 
           },
@@ -144,6 +128,32 @@
             } 
           },
           {
+            "type":"VirtualMachineExtension",
+            "settings":[
+            {
+              "vms": [
+                "sqldns-vm1"
+              ],
+              "extensions": [              
+                {
+                  "name": "sql",
+                  "publisher": "Microsoft.Powershell",
+                  "type": "DSC",
+                  "typeHandlerVersion": "2.7",
+                  "autoUpgradeMinorVersion": true,
+                  "settings": {
+                      "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                      "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure"
+                    },
+                    "protectedSettings": {
+                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "type": "VirtualMachineExtension",
             "settings":[
               {
@@ -156,14 +166,66 @@
                     "name": "sql",
                     "publisher": "Microsoft.Powershell",
                     "type": "DSC",
-                    "typeHandlerVersion": "2.1",
+                    "typeHandlerVersion": "2.7",
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
                       "ConfigurationFunction":"Cluster.ps1\\Cluster"
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "VirtualMachineExtension",
+            "settings":[
+              {
+                "vms": [
+                  "sqlao-vm1"
+                ],
+                "extensions": [
+                  {
+                    "name": "sql",
+                    "publisher": "Microsoft.Powershell",
+                    "type": "DSC",
+                    "typeHandlerVersion": "2.7",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {
+                      "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                      "ConfigurationFunction":"ClusterNode1.ps1\\ClusterNode1"
+                    },
+                    "protectedSettings": {
+                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "VirtualMachineExtension",
+            "settings":[
+              {
+                "vms": [
+                  "sqlao-vm2"
+                ],
+                "extensions": [
+                  {
+                    "name": "sql",
+                    "publisher": "Microsoft.Powershell",
+                    "type": "DSC",
+                    "typeHandlerVersion": "2.7",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {
+                      "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
+                      "ConfigurationFunction":"ClusterNode2.ps1\\ClusterNode2"
+                    },
+                    "protectedSettings": {
+                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
                     }
                   }
                 ]

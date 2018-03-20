@@ -20,7 +20,7 @@ Configuration Cluster
 
     
 
-    Node 'localhost'
+    Node localhost
     {
         # $Path = $env:TEMP; $Installer = "chrome_installer.exe"; Invoke-WebRequest "http://dl.google.com/chrome/install/375.126/chrome_installer.exe" -OutFile $Path\$Installer; Start-Process -FilePath $Path\$Installer -Args "/silent /install" -Verb RunAs -Wait; Remove-Item $Path\$Installer
         # https://go.microsoft.com/fwlink/?LinkId=708343&clcid=0x409
@@ -89,45 +89,13 @@ Configuration Cluster
             DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringCmdInterfaceFeature'
         }
 
-        Registry EnableLocalAccountForWindowsCluster #ResourceName
-        {
-            Key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\'
-            ValueName = 'LocalAccountTokenFilterPolicy'
-            Ensure = 'Present'
-            Force =  $true
-            ValueData = 1
-            ValueType = 'Dword'
-            DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringServerToolsFeature'
-        }
-
-        Registry SetDomain #ResourceName
-        {
-            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
-            ValueName = 'Domain'
-            Ensure = 'Present'
-            Force =  $true
-            DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
-            ValueData = $dnsSuffix
-            ValueType = 'String'
-        }
-        Registry SetNVDomain #ResourceName
-        {
-            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
-            ValueName = 'NV Domain'
-            Ensure = 'Present'
-            Force =  $true
-            DependsOn = '[Registry]SetDomain'
-            ValueData = $dnsSuffix
-            ValueType = 'String'
-        }
-
         File DirectoryTemp
         {
             Ensure = "Present"  # You can also set Ensure to "Absent"
             Type = "Directory" # Default is "File".
             Recurse = $false
             DestinationPath = "C:\TempDSCAssets"
-            DependsOn = '[Registry]SetNVDomain'
+            DependsOn = '[WindowsFeature]AddRemoteServerAdministrationToolsClusteringServerToolsFeature'
         }
 
         Script GetCerts
@@ -161,10 +129,10 @@ Configuration Cluster
             } 
             TestScript = { Test-Path "C:\TempDSCAssets\tscripts.zip" } 
             GetScript = { @{ Result = (Get-Content "C:\TempDSCAssets\tscripts.zip") } } 
-            DependsOn = '[File]DirectoryTemp'
+            DependsOn = '[Archive]CertZipFile'
         }
 
-        Archive ZipFile
+        Archive TScriptsZipFile
         {
             Path = 'C:\TempDSCAssets\tscripts.zip'
             Destination = 'c:\TempDSCAssets\'
@@ -181,7 +149,39 @@ Configuration Cluster
             ServiceAccount = $cred
             RestartService = $true
             PsDscRunAsCredential = $cred
-            DependsOn = '[Registry]SetNVDomain'
+            DependsOn = '[Archive]TScriptsZipFile'
+        }
+
+        Registry EnableLocalAccountForWindowsCluster #ResourceName
+        {
+            Key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\'
+            ValueName = 'LocalAccountTokenFilterPolicy'
+            Ensure = 'Present'
+            Force =  $true
+            ValueData = 1
+            ValueType = 'Dword'
+            DependsOn = '[SqlServiceAccount]SetServiceAccount_User'
+        }
+
+        Registry SetDomain #ResourceName
+        {
+            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
+            ValueName = 'Domain'
+            Ensure = 'Present'
+            Force =  $true
+            DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
+            ValueData = $dnsSuffix
+            ValueType = 'String'
+        }
+        Registry SetNVDomain #ResourceName
+        {
+            Key = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\'
+            ValueName = 'NV Domain'
+            Ensure = 'Present'
+            Force =  $true
+            DependsOn = '[Registry]SetDomain'
+            ValueData = $dnsSuffix
+            ValueType = 'String'
         }
 
         Script DNSReboot
@@ -194,85 +194,19 @@ Configuration Cluster
                  $global:DSCMachineStatus = 1
             }
             GetScript = { return @{result = 'result'}}
-            DependsOn = '[SqlServiceAccount]SetServiceAccount_User','[Archive]CertZipFile','[Archive]ZipFile'
-            PsDscRunAsCredential = $cred
+            DependsOn = '[Registry]SetNVDomain'
+            #PsDscRunAsCredential = $cred
         }
 
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true
-            ActionAfterReboot = 'ContinueConfiguration'
-            ConfigurationMode = 'ApplyOnly'
-            AllowModuleOverwrite = $true
         }
     }
 
-    Node 'localhost'
-    {
-        if ($env:COMPUTERNAME -eq 'sqlao1') {
-            WaitForAll Reboot
-            {
-                ResourceName      = '[Script]DNSReboot'
-                NodeName          = 'localhost'
-                RetryIntervalSec  = 15
-                RetryCount        = 30
-            }
-            
-            Script CreateWindowsCluster
-            {
-                PsDscRunAsCredential = $cred
-                SetScript =
-                {
-                    New-Cluster -Name 'sqlaocl' -Node 'sqlao1','sqlao2' -StaticAddress '172.18.0.100' -AdministrativeAccessPoint Dns
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = '' } }
-                DependsOn = '[WaitForAll]Reboot'
-            }
-
-            Script EnableAvailabilityGroupOnPrimary
-            {
-                SetScript =
-                {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                DependsOn = '[Script]CreateWindowsCluster'
-                PsDscRunAsCredential = $cred
-            }
-        }
-    }
     
-    Node 'localhost'
-    {
-        if ($env:COMPUTERNAME -eq 'sqlao2') {
-            WaitForAll ClusterSetup
-            {
-                ResourceName      = '[Script]CreateWindowsCluster'
-                NodeName          = 'localhost'
-                RetryIntervalSec  = 15
-                RetryCount        = 30
-            }
-            
-            Script EnableAvailabilityGroupOnSecondary
-            {
-                SetScript = {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                PsDscRunAsCredential = $cred
-                DependsOn = '[WaitForAll]ClusterSetup'
-            }
-        }
-    }
+    
+    
 
     # Node localhost
     # {
