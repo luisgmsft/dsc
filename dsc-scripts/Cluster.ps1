@@ -1,12 +1,12 @@
 Configuration Cluster
 {
     Param(
-        [String]$safeModePassword = "test$!Passw0rd111"
-    )
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$AdminCreds,
 
-    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
-    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
-    $dnsSuffix = "lugizi.ao.contoso.com"
+        [Parameter(Mandatory)]
+        [string]$DomainName
+    )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
 
@@ -17,8 +17,6 @@ Configuration Cluster
     #    https://docs.microsoft.com/en-us/sql/database-engine/availability-groups/windows/enable-and-disable-always-on-availability-groups-sql-server
     #    https://docs.microsoft.com/en-us/powershell/module/failoverclusters/new-cluster?view=win10-ps
     #    New-Cluster -Name “WSFCSQLCluster” -Node sqlao-vm1,sqlao-vm2 -AdministrativeAccessPoint DNS
-
-    
 
     Node localhost
     {
@@ -146,9 +144,9 @@ Configuration Cluster
             ServerName     = $env:COMPUTERNAME
             InstanceName   = 'MSSQLSERVER'
             ServiceType    = 'DatabaseEngine'
-            ServiceAccount = $cred
+            ServiceAccount = $AdminCreds
             RestartService = $true
-            PsDscRunAsCredential = $cred
+            PsDscRunAsCredential = $AdminCreds
             DependsOn = '[Archive]TScriptsZipFile'
         }
 
@@ -170,7 +168,7 @@ Configuration Cluster
             Ensure = 'Present'
             Force =  $true
             DependsOn = '[Registry]EnableLocalAccountForWindowsCluster'
-            ValueData = $dnsSuffix
+            ValueData = $DomainName
             ValueType = 'String'
         }
         Registry SetNVDomain #ResourceName
@@ -180,7 +178,7 @@ Configuration Cluster
             Ensure = 'Present'
             Force =  $true
             DependsOn = '[Registry]SetDomain'
-            ValueData = $dnsSuffix
+            ValueData = $DomainName
             ValueType = 'String'
         }
 
@@ -195,12 +193,12 @@ Configuration Cluster
             }
             GetScript = { return @{result = 'result'}}
             DependsOn = '[Registry]SetNVDomain'
-            #PsDscRunAsCredential = $cred
         }
 
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true
+            ActionAfterReboot = "ContinueConfiguration"
         }
     }
 }

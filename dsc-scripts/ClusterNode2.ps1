@@ -1,56 +1,43 @@
 Configuration ClusterNode2
 {
     Param(
-        [String]$safeModePassword = "test$!Passw0rd111"
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$AdminCreds
     )
-
-    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
-    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
-    $dnsSuffix = "lugizi.ao.contoso.com"
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xStorage, xNetworking, SqlServerDsc, xComputerManagement
 
     Node localhost
     {
-        #if ($env:COMPUTERNAME -eq 'sqlao2') {
-            # WaitForAll ClusterSetup
-            # {
-            #     ResourceName      = '[Script]CreateWindowsCluster'
-            #     NodeName          = 'sqlao1'
-            #     RetryIntervalSec  = 15
-            #     RetryCount        = 30
-            # }
-
-            Script WaitForPingToKickIn
+        Script WaitForPingToKickIn
+        {
+            PsDscRunAsCredential = $AdminCreds
+            SetScript =
             {
-                PsDscRunAsCredential = $cred
-                SetScript =
+                DO
                 {
-                    DO
-                    {
-                        start-sleep 10
-                        $Ping = Test-Connection 'sqlao1' -quiet
-                    }
-                    Until ($Ping -contains "True")
+                    start-sleep 10
+                    $Ping = Test-Connection 'sqlao1' -quiet
                 }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = '' } }
+                Until ($Ping -contains "True")
             }
-            
-            Script EnableAvailabilityGroupOnSecondary
-            {
-                SetScript = {
-                    Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
-                }
-                TestScript = {
-                    return $false
-                }
-                GetScript = { @{ Result = (Get-Cluster | Format-List) } }
-                PsDscRunAsCredential = $cred
-                DependsOn = '[Script]WaitForPingToKickIn'
+            TestScript = {
+                return $false
             }
-        # }
+            GetScript = { @{ Result = '' } }
+        }
+        
+        Script EnableAvailabilityGroupOnSecondary
+        {
+            SetScript = {
+                Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\localhost\DEFAULT" -Force
+            }
+            TestScript = {
+                return $false
+            }
+            GetScript = { @{ Result = (Get-Cluster | Format-List) } }
+            PsDscRunAsCredential = $AdminCreds
+            DependsOn = '[Script]WaitForPingToKickIn'
+        }
     }
 }

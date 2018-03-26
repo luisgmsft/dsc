@@ -1,12 +1,10 @@
 Configuration ClusterSqls
 {
     Param(
-        [String]$safeModePassword = "test$!Passw0rd111"
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$AdminCreds
     )
 
-    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
-    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
-    
     Import-DscResource -ModuleName PSDesiredStateConfiguration, SqlServerDsc
 
     Node localhost
@@ -19,7 +17,7 @@ Configuration ClusterSqls
                 TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
                 GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
+                PsDscRunAsCredential = $AdminCreds
             }
         }
 
@@ -31,7 +29,7 @@ Configuration ClusterSqls
                 TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
                 GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
+                PsDscRunAsCredential = $AdminCreds
             }
         }
     }
@@ -46,7 +44,7 @@ Configuration ClusterSqls
                 TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
                 GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
+                PsDscRunAsCredential = $AdminCreds
                 DependsOn = '[SqlScript]Primary-Step-1'
             }
         }
@@ -59,7 +57,7 @@ Configuration ClusterSqls
                 TestFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
                 GetFilePath = 'c:\TempDSCAssets\dummy-for-all-tests.sql'
 
-                PsDscRunAsCredential = $cred
+                PsDscRunAsCredential = $AdminCreds
                 DependsOn = '[SqlScript]Secondary-Step-1'
             }
         }

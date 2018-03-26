@@ -1,12 +1,12 @@
 Configuration Infrastructure
 {
     Param(
-        [string]$safeModePassword = "test$!Passw0rd111"
-    )
+        [Parameter(Mandatory)]
+        [System.Management.Automation.PSCredential]$AdminCreds,
 
-    $pw = ConvertTo-SecureString $safeModePassword -AsPlainText -Force
-    [System.Management.Automation.PSCredential]$cred = New-Object System.Management.Automation.PSCredential (".\testadminuser",$pw)
-    $dnsSuffix = "lugizi.ao.contoso.com"
+        [Parameter(Mandatory)]
+        [string]$DomainName
+    )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration, xDnsServer
 
@@ -30,7 +30,7 @@ Configuration Infrastructure
             Name = 'lugizi.ao.contoso.com'
             Ensure = 'Present'
             DynamicUpdate = 'NonsecureAndSecure'
-            PsDscRunAsCredential = $cred
+            PsDscRunAsCredential = $AdminCreds
             DependsOn = '[WindowsFeature]DnsToolsFeature'
         }
 
@@ -41,7 +41,7 @@ Configuration Infrastructure
             Ensure = 'Present'
             Force =  $true
             DependsOn = '[xDnsServerPrimaryZone]PrimaryZone'
-            ValueData = $dnsSuffix
+            ValueData = $DomainName
             ValueType = 'String'
         }
         Registry SetNVDomain #ResourceName
@@ -51,7 +51,7 @@ Configuration Infrastructure
             Ensure = 'Present'
             Force =  $true
             DependsOn = '[Registry]SetDomain'
-            ValueData = $dnsSuffix
+            ValueData = $DomainName
             ValueType = 'String'
         }
 
@@ -72,6 +72,7 @@ Configuration Infrastructure
         LocalConfigurationManager
         {
             RebootNodeIfNeeded = $true
+            ActionAfterReboot = "ContinueConfiguration"
         }
     }
 }

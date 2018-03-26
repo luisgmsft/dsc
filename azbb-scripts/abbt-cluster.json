@@ -143,10 +143,19 @@
                   "autoUpgradeMinorVersion": true,
                   "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure"
+                      "ConfigurationFunction":"Infrastructure.ps1\\Infrastructure",
+                      "Properties": {
+                        "DomainName": "lugizi.ao.contoso.com",
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1" 
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -170,10 +179,19 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"Cluster.ps1\\Cluster"
+                      "ConfigurationFunction":"Cluster.ps1\\Cluster",
+                      "Properties": {
+                        "DomainName": "lugizi.ao.contoso.com",
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -196,10 +214,18 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"ClusterNode1.ps1\\ClusterNode1"
+                      "ConfigurationFunction":"ClusterNode1.ps1\\ClusterNode1",
+                      "Properties": {
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -222,10 +248,18 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"ClusterNode2.ps1\\ClusterNode2"
+                      "ConfigurationFunction":"ClusterNode2.ps1\\ClusterNode2",
+                      "Properties": {
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -249,10 +283,18 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"ClusterSqls.ps1\\ClusterSqls"
+                      "ConfigurationFunction":"ClusterSqls.ps1\\ClusterSqls",
+                      "Properties": {
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -275,10 +317,18 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"ClusterSqls.1.ps1\\ClusterSqls1"
+                      "ConfigurationFunction":"ClusterSqls.1.ps1\\ClusterSqls1",
+                      "Properties": {
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
@@ -301,10 +351,18 @@
                     "autoUpgradeMinorVersion": true,
                     "settings": {
                       "ModulesUrl": "https://lugizidscstorage.blob.core.windows.net/isos/sql.zip",
-                      "ConfigurationFunction":"ClusterSqls.2.ps1\\ClusterSqls2"
+                      "ConfigurationFunction":"ClusterSqls.2.ps1\\ClusterSqls2",
+                      "Properties": {
+                        "AdminCreds": {
+                          "UserName": "testadminuser",
+                          "Password": "PrivateSettingsRef:AdminPassword"
+                        }
+                      }
                     },
                     "protectedSettings": {
-                      "DataBlobUri": "https://lugizidscstorage.blob.core.windows.net/isos/ConfigData.psd1"
+                      "Items": {
+                        "AdminPassword": "test$!Passw0rd111"
+                      }
                     }
                   }
                 ]
